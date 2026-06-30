@@ -20,6 +20,22 @@ def strip_emoji(s: str) -> str:
     return re.sub(r"\s{2,}", " ", _EMOJI_RE.sub("", s or "")).strip(" -—|·")
 
 
+# Em dash (and a spaced hyphen used like one) -> comma; en dash -> hyphen. The user's style rule is
+# "never use em dashes" in generated copy; the model is told this too, this just enforces it.
+_EMDASH_RE = re.compile(r"\s*—\s*|\s+-\s+")
+
+
+def clean_copy(s: str) -> str:
+    """Style-clean generated copy: strip emoji, remove em dashes, tidy whitespace. KEEPS caps,
+    normal punctuation, and in-word hyphens (1v3, drop-spot, 20-kill)."""
+    s = _EMOJI_RE.sub("", s or "")
+    s = re.sub(r"\s*–\s*", "-", s)        # en dash -> hyphen (ranges/compounds)
+    s = _EMDASH_RE.sub(", ", s)                # em dash / spaced hyphen -> comma
+    s = re.sub(r"\s*,(?:\s*,)+", ",", s)       # collapse doubled commas
+    s = re.sub(r"\s+,", ",", s)                # no space before a comma
+    return re.sub(r"\s{2,}", " ", s).strip(" ,|·")
+
+
 GAME_HINTS = {
     "Escape from Tarkov": {"tarkov", "scav", "raid", "extract", "pmc", "loot", "magazine", "stash"},
     "Meccha Chameleon": {"prop", "hunt", "hider", "hunter", "chameleon", "caught", "infection", "hide", "seek"},

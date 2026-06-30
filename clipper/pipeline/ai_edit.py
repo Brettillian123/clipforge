@@ -19,9 +19,9 @@ SYSTEM = (
     "change, as JSON. Times are absolute VOD seconds. Keep clips self-contained with a "
     "hook in the first ~3s and a clear payoff. Do not cut mid-word: snap segment "
     "boundaries to the start/end of nearby transcript words. "
-    "When you rewrite title/caption copy, sound like a real streamer, not AI marketing: be specific to "
-    "what actually happens in the clip, keep the TikTok caption conversational and the YouTube title "
-    "searchable (the two should read differently), and use NO EMOJIS anywhere."
+    "When you rewrite title/caption copy, keep it punchy and high-energy (it's a comedic gaming "
+    "channel) but authentic: tie the hype to what actually happens in the clip, make the TikTok caption "
+    "and the YouTube title read differently, and use NO EMOJIS and NO EM DASHES anywhere."
 )
 
 SCHEMA_HINT = {

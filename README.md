@@ -46,8 +46,8 @@ Full design notes: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 - **Automatic moment detection** — per-second scoring on six audio/text signals
   (energy, spike, sustain, talk-density, laughter, dynamics), tuned to favour real gameplay reactions
   over lobby chatter, snapped to sentence boundaries.
-- **Optional AI pass** (Claude) — re-rank the shortlist, write per-platform copy (a conversational
-  TikTok caption vs a searchable YouTube title, in an authentic, no-emoji voice), and apply
+- **Optional AI pass** (Claude): re-rank the shortlist, write per-platform copy (a high-energy TikTok
+  caption vs a searchable YouTube title, in an authentic voice with no emojis or em dashes), and apply
   plain-English edits. The whole pipeline works without it.
 - **The Studio** — a native desktop window (no browser chrome) with a true live preview: add text,
   shapes, arrows, emojis, images, a chat inset, and a hook titlecard, and they appear instantly on the

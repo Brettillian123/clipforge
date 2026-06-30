@@ -38,35 +38,36 @@ def _cta(cfg) -> str:
 
 
 def _voice() -> str:
-    """The anti-AI-copy rules: sound like the streamer, be specific, no emoji. This is the core of the
-    'make captions feel authentic' request."""
+    """Authentic-but-HYPE rules: keep the fun/energy, just tie it to the specific moment so it reads
+    real instead of like generic AI marketing. (User: don't flatten the tone, never use em dashes.)"""
     return (
-        "VOICE — write like a real person, never like AI marketing copy. Sound the way this streamer would "
-        "actually talk: casual, specific, a little dry and funny. The #1 rule is to be SPECIFIC to what "
-        "literally happens in THIS clip — name the actual thing ('chat voted to sell my whole stash', "
-        "'third wipe on the same boss', 'he proposed to me mid-raid') instead of vague hype. Generic hype "
-        "is the dead giveaway of fake copy, so BAN it: no 'you won't believe', 'this was insane', 'pure "
-        "chaos', 'wait for it', 'broke me', 'absolute cinema', 'the way that…', and no empty intensifiers "
-        "(insane / crazy / epic / wild / unbelievable) used as filler. "
-        "NO EMOJIS anywhere — not in titles, captions, descriptions, or hashtags. None, ever. "
-        "Keep hashtags out of the caption sentence. Don't Title-Case Every Word, don't stack exclamation "
-        "points, and don't oversell — a slightly understated, real line beats a hyped one. Vary the "
-        "phrasing across clips; never reuse one template."
+        "VOICE — match how this streamer talks when they're hyped: high-energy, funny, punchy, and "
+        "SPECIFIC. This is short-form for a comedic gaming channel, so KEEP IT FUN and full of hype; that "
+        "energy is what makes people watch and share. The thing to avoid is FAKE, copy-paste AI-marketing "
+        "hype, not excitement itself. So tie the hype to what literally happens in THIS clip: name the "
+        "actual thing ('chat voted to sell my whole stash', 'third wipe on the same boss', 'he proposed "
+        "to me mid raid') instead of generic lines that could sit on any clip. CAPS for emphasis and big "
+        "reactions are great; what's banned is empty filler like 'you won't believe', 'wait for it', "
+        "'this broke the internet', 'absolute cinema', and 'the way that...'. Words like "
+        "insane / clutch / chaos / unhinged are welcome when the moment truly earns them. "
+        "HARD RULES: no emojis anywhere (titles, captions, descriptions, hashtags), and never use em "
+        "dashes; use commas or periods instead. Keep hashtags out of the caption sentence, vary the "
+        "phrasing across clips, and never flatten everything into dull all-lowercase."
     )
 
 
 def _platforms(cfg) -> str:
     """TikTok and YouTube need DIFFERENT copy — the user explicitly wants them tailored, not identical."""
     return (
-        "TWO PLATFORMS, DIFFERENT COPY — never write identical text for both; duplicate copy hurts reach "
+        "TWO PLATFORMS, DIFFERENT COPY. Never write identical text for both; duplicate copy hurts reach "
         "and search on each. "
-        "TikTok caption: conversational and authentic, first person, lowercase is fine, like a caption a "
-        "real gamer would actually post. One short line (sometimes two), about 70-140 characters. Lead with "
-        f"the specific moment, then end by pointing viewers to the stream naturally (e.g. {_cta(cfg)}). "
-        "YouTube Shorts title: a clear, SEARCHABLE headline — put the GAME NAME and the specific "
-        "moment/outcome in the first ~40 characters (the feed truncates there), so it works in search and "
-        "in-feed. Curiosity is good, but stay accurate; no bait. The YouTube description is one plain, "
-        "readable line of context."
+        "TikTok caption: punchy and high-energy, first person, like a hyped gamer posting their own clip. "
+        "One or two short lines, about 70-140 characters. Lead with the specific moment (big energy is "
+        f"good), then end with a natural nod to the stream (e.g. {_cta(cfg)}). "
+        "YouTube Shorts title: a clear, SEARCHABLE headline. Put the GAME NAME and the specific moment or "
+        "outcome in the first ~40 characters (the feed truncates there) so it works in search and in-feed. "
+        "Punchy and exciting is good; keep it accurate, no bait. The YouTube description is one readable "
+        "line of context."
     )
 
 
@@ -97,7 +98,7 @@ def _platform_meta(cfg, item: dict) -> dict:
     conversational TikTok caption, and a searchable YouTube title + plain description. Distinct copy per
     platform; emoji stripped defensively; #Shorts added to the YouTube tags automatically."""
     from . import meta as _meta
-    clean = _meta.strip_emoji
+    clean = _meta.clean_copy                        # strips emoji + em dashes, keeps CAPS
     hook = clean(item.get("hook") or item.get("youtube_title") or "")[:60]
     tt_cap = clean(item.get("tiktok_caption") or "")
     yt_title = clean(item.get("youtube_title") or hook)[:60]
@@ -131,13 +132,14 @@ def _user_payload(cfg: config.Config, cands: list, count: int) -> str:
         "for_each": {
             "id": "the candidate id you are selecting",
             "llm_score": "0-100 your viral-potential score",
-            "hook": "<=55 chars: the punchy on-screen hook = the specific moment (also burned in as the "
-                    "titlecard); no emoji",
-            "tiktok_caption": "conversational TikTok caption, ~70-140 chars: specific moment first, then a "
-                              f"natural nod to the stream ({_cta(cfg)}); no emoji, no hashtags in the text",
-            "youtube_title": "<=60 chars (aim 25-45): searchable — game name + the specific moment/outcome "
-                             "in the first ~40 chars; no emoji, no clickbait",
-            "youtube_desc": "one plain, readable line of context for the YouTube description; no emoji",
+            "hook": "<=55 chars: punchy, high-energy on-screen hook = the specific moment (also burned in "
+                    "as the titlecard); CAPS ok; no emoji, no em dashes",
+            "tiktok_caption": "punchy, high-energy TikTok caption, ~70-140 chars: specific moment first, "
+                              f"then a natural nod to the stream ({_cta(cfg)}); no emoji, no em dashes, no "
+                              "hashtags in the text",
+            "youtube_title": "<=60 chars (aim 25-45): searchable, game name + the specific moment/outcome "
+                             "in the first ~40 chars; exciting but accurate; no emoji, no em dashes, no clickbait",
+            "youtube_desc": "one readable line of context for the YouTube description; no emoji, no em dashes",
             "hashtags": "4-5 tags as a JSON array, mix 1-2 broad + 2-3 niche/game-specific; do NOT include "
                         "#Shorts (added automatically); no emoji",
             "trim_start_delta_s": "optional, -3..3, nudge start (will be re-validated against pauses)",
@@ -212,12 +214,12 @@ def write_titles(cfg: config.Config, clips: list) -> dict:
         "task": f"For EACH clip id, write short-form post copy for {_channel_descriptor(cfg)}. Follow the "
                 "VOICE and TWO-PLATFORM rules exactly — the TikTok and YouTube copy must read differently.",
         "for_each": {
-            "hook": "<=55 chars: the specific on-screen moment; no emoji",
-            "tiktok_caption": "conversational, ~70-140 chars: specific moment first, then a natural nod to "
-                              f"the stream ({_cta(cfg)}); no emoji, no hashtags in the text",
-            "youtube_title": "<=60 chars (aim 25-45): searchable — game + specific moment in the first ~40 "
-                             "chars; no emoji, no bait",
-            "youtube_desc": "one plain, readable line of context; no emoji",
+            "hook": "<=55 chars: punchy, high-energy on-screen moment; CAPS ok; no emoji, no em dashes",
+            "tiktok_caption": "punchy, high-energy, ~70-140 chars: specific moment first, then a natural "
+                              f"nod to the stream ({_cta(cfg)}); no emoji, no em dashes, no hashtags in the text",
+            "youtube_title": "<=60 chars (aim 25-45): searchable, game + specific moment in the first ~40 "
+                             "chars; exciting but accurate; no emoji, no em dashes, no bait",
+            "youtube_desc": "one readable line of context; no emoji, no em dashes",
             "hashtags": "3-5 tags as a JSON ARRAY; broad + niche/game; do NOT include #Shorts; no emoji",
         },
         "clips": items,
