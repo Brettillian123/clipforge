@@ -134,8 +134,9 @@
   #reviewstriptime{font-size:11px;color:var(--muted);text-align:center;height:15px;margin-top:4px;letter-spacing:.03em}
   button.danger{border-color:var(--bad);color:var(--bad)}button.danger:hover{background:var(--bad);color:#1b0d0d}
   /* ---- posting / connections ---- */
-  #connmodal{position:fixed;inset:0;background:#000d;display:none;align-items:center;justify-content:center;z-index:500;padding:18px}
+  #connmodal,#finishmodal{position:fixed;inset:0;background:#000d;display:none;align-items:center;justify-content:center;z-index:500;padding:18px}
   #connmodal .box{background:var(--panel);border:1px solid var(--line);border-radius:16px;width:720px;max-width:96vw;max-height:92vh;overflow:auto;padding:20px;box-shadow:0 24px 90px #000d}
+  #finishmodal .box{background:var(--panel);border:1px solid var(--line);border-radius:16px;width:560px;max-width:96vw;max-height:92vh;overflow:auto;padding:20px;box-shadow:0 24px 90px #000d}
   #connmodal code{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:12px}
   .conncard{border:1px solid var(--line);border-radius:13px;padding:14px;margin-bottom:12px;background:var(--panel2)}
   .conncard.on{border-color:var(--ok)}
@@ -210,7 +211,8 @@
 <div id="app">
   <aside id="cliplist"><div id="filters"></div><div id="clips"></div>
     <button id="aititles" onclick="aiTitles()" style="margin:8px 8px 0">✨ AI titles (all)</button>
-    <button id="renderall" class="primary" onclick="renderApproved()">Export approved (0)</button></aside>
+    <button id="renderall" class="primary" onclick="renderApproved()">Export approved (0)</button>
+    <button id="finishbtn" onclick="openFinish()" style="margin:0 8px 8px" title="Post the approved clips and delete the rejected ones">✅ Finish review…</button></aside>
   <div id="editor"><div class="empty">Select a clip to edit.</div></div>
 </div>
 <div class="toast" id="toast"></div>
@@ -271,6 +273,11 @@
   <div id="conncards"></div>
   <h3 style="font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--gold);margin:20px 0 8px">Scheduled &amp; recent posts</h3>
   <div id="postqueue"><div class="sub">Nothing queued yet.</div></div>
+</div></div>
+<div id="finishmodal" onclick="closeFinish()"><div class="box" onclick="event.stopPropagation()">
+  <div class="row" style="margin-bottom:4px"><h2 style="margin:0;flex:1;font-size:18px;font-weight:800">✅ Finish review</h2><button onclick="closeFinish()">✕ Close</button></div>
+  <p class="sub" style="margin:0 0 14px">Post everything you approved, then clear out the ones you rejected.</p>
+  <div id="finishbody"></div>
 </div></div>
 
 <script>
@@ -977,6 +984,41 @@ async function postClip(){const c=cur();if(!c)return;await flushSave();
   if(r.error){toast(r.error);return;}if(r.state)S.posting=r.state;
   toast(when?("Scheduled for "+fmtDate(when)):("Posting to "+platforms.map(p=>p==="youtube"?"YouTube":"TikTok").join(" + ")+"…"));}
 async function cancelPost(id){const r=await jpost("/api/posting/cancel",{id});await loadPosting();renderQueue();if(!r||!r.ok)toast("Couldn't remove");}
+/* ---------- finish review: post approved + delete rejected ---------- */
+function openFinish(){$("#finishmodal").style.display="flex";loadPosting().then(renderFinish);}
+function closeFinish(){$("#finishmodal").style.display="none";}
+function renderFinish(){const host=$("#finishbody");if(!host)return;
+  const ap=S.clips.filter(c=>c.approved===true),rj=S.clips.filter(c=>c.approved===false);
+  const ps=S.posting||{},yt=ps.youtube||{},tt=ps.tiktok||{},anyConn=yt.connected||tt.connected;
+  let h=`<div class="row" style="gap:18px;margin-bottom:14px;font-size:14px"><span>✅ <b>${ap.length}</b> approved</span><span>✕ <b>${rj.length}</b> rejected</span><span class="spacer"></span><span class="sub">${S.clips.length} clips total</span></div>`;
+  h+=`<div class="conncard"><h4>🚀 Post approved (${ap.length})</h4>`;
+  if(!anyConn){h+=`<div class="sub" style="margin-top:6px">Connect an account first to post.</div><div class="row" style="margin-top:8px"><button class="sm" onclick="closeFinish();openConn()">🔗 Connect accounts</button></div>`;}
+  else{
+    h+=`<label class="pchk" style="margin-top:8px"><input type="checkbox" id="fYt" ${yt.connected?"checked":"disabled"}> ▶️ YouTube${yt.connected?(yt.channel?" · "+he(yt.channel):""):" — not connected"}</label>`;
+    if(yt.connected)h+=`<div class="row" style="margin:0 0 2px 25px"><span class="sub">Visibility</span><select id="fPriv" style="width:auto"><option value="public">Public</option><option value="unlisted">Unlisted</option><option value="private">Private</option></select></div><div class="sub" style="margin:0 0 6px 25px;font-size:11px">Unverified projects upload Private regardless — publish in Studio.</div>`;
+    h+=`<label class="pchk"><input type="checkbox" id="fTt" ${tt.connected?"checked":"disabled"}> 🎵 TikTok${tt.connected?(tt.handle?" · "+he(tt.handle):""):" — not connected"} <span class="sub">→ drafts</span></label>`;
+    h+=`<label class="pchk" style="margin-top:6px"><input type="checkbox" id="fSched" onchange="$('#fWhen').style.display=this.checked?'block':'none'"> 🕒 Schedule for later</label><input type="datetime-local" id="fWhen" style="display:none">`;
+    h+=`<div class="row" style="margin-top:9px"><button class="sm primary" onclick="postApproved()" ${ap.length?"":"disabled"}>🚀 Post ${ap.length} approved</button></div>`;
+    h+=`<div class="sub" style="margin-top:7px">Approved clips not downloaded yet will render first, then post automatically.</div>`;
+  }
+  h+=`</div>`;
+  h+=`<div class="conncard"><h4>🗑 Delete rejected (${rj.length})</h4><div class="sub" style="margin-top:6px">Removes the rejected clips' rendered files from this batch. Your source recording is untouched — you can re-make clips anytime.</div><div class="row" style="margin-top:9px"><button class="sm danger" onclick="deleteRejected()" ${rj.length?"":"disabled"}>🗑 Delete ${rj.length} rejected</button></div></div>`;
+  host.innerHTML=h;}
+async function postApproved(){await flushSave();
+  const platforms=[];if($("#fYt")&&$("#fYt").checked)platforms.push("youtube");if($("#fTt")&&$("#fTt").checked)platforms.push("tiktok");
+  if(!platforms.length){toast("Tick a connected platform");return;}
+  let when=0;if($("#fSched")&&$("#fSched").checked){const v=$("#fWhen").value;if(!v){toast("Pick a date & time");return;}
+    when=Math.floor(new Date(v).getTime()/1000);if(when<=Date.now()/1000+30){toast("Pick a future time");return;}}
+  const privacy=($("#fPriv")&&$("#fPriv").value)||"public";
+  const r=await jpost("/api/finish/post_approved",{platforms,when,privacy});
+  if(r.error){toast(r.error);return;}
+  let msg=when?`Scheduled ${r.posted+(r.rendering||0)} approved`:`Posting ${r.posted} now`;
+  if(r.rendering)msg+=` · ${r.rendering} rendering then post`;
+  toast(msg);await loadPosting();}
+async function deleteRejected(){const rj=S.clips.filter(c=>c.approved===false);if(!rj.length)return;
+  if(!confirm(`Delete ${rj.length} rejected clip(s) from this batch?\n\nThis removes their rendered files. Your source recording is untouched and you can re-make clips anytime.`))return;
+  const r=await jpost("/api/finish/delete_rejected",{});
+  toast(`Deleted ${(r&&r.deleted)||0} rejected clip(s)`);closeFinish();S.curId=null;await load();}
 async function aiEdit(){const c=cur(),cid=c.id,inst=$("#aiInst").value.trim();if(!inst){toast("Type a request");return;}toast("Asking AI…");
   const r=await jpost(`/api/clip/${cid}/ai`,{instruction:inst});if(r.error){toast("AI: "+r.error);return;}applyClip(r.clip);c.export_stale=true;
   if(r.changes&&r.changes.note)toast("AI: "+r.changes.note);renderEditor();
@@ -990,6 +1032,7 @@ async function renderApproved(){flushSave();const r=await jpost("/api/render_app
 addEventListener("keydown",e=>{if(/input|textarea|select/i.test(e.target.tagName))return;
   const rm=$("#reviewmodal");if(rm&&rm.style.display==="flex"){if(e.key==="Escape")closeReview();return;}
   const cmo=$("#connmodal");if(cmo&&cmo.style.display==="flex"){if(e.key==="Escape")closeConn();return;}
+  const fmo=$("#finishmodal");if(fmo&&fmo.style.display==="flex"){if(e.key==="Escape")closeFinish();return;}
   const pm=$("#partmodal");if(pm&&pm.style.display==="flex"){if(e.key==="Escape")closeInsert();return;}const c=cur(),mod=e.ctrlKey||e.metaKey;
   if(mod&&e.key.toLowerCase()==="z"){e.preventDefault();e.shiftKey?redo():undo();return;}if(!c)return;const k=e.key;
   if(k===" "){e.preventDefault();const v=$("#stagevid");v.paused?v.play():v.pause();}

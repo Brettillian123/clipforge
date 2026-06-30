@@ -68,6 +68,7 @@ class State:
         self.watermark = branding.render_watermark(cfg)
         self.jobs: dict = {}
         self.job_seq = 0
+        self.pending_post: dict = {}          # cid -> {platforms,when,privacy}: post once its export finishes
         self.cancels: dict = {}               # jid -> threading.Event (set => cancel that render)
         self.latest: dict = {}                # (cid, kind) -> jid of the most recent render request
         self.lock = threading.RLock()         # guards self.project + jobs
@@ -256,6 +257,106 @@ class State:
             log(f"[server] could not delete VOD {p}: {e}")
             return False
 
+    # ---- batch finish: post approved / delete rejected ----
+    def _post_items(self, cid: str, platforms, when: int, privacy: str) -> list:
+        """Build upload items (one per platform) for a clip from its finished file + metadata.
+        Returns [] if the clip isn't downloaded yet (no 'Ready to post' file)."""
+        from . import jobs as jobsmod
+        with self.lock:
+            c = self.find(cid)
+            if not c:
+                return []
+            meta = copy.deepcopy(c.get("metadata") or {})
+        mp4 = os.path.join(jobsmod.ready_dir(self.out_dir), f"{cid}.mp4")
+        cover = os.path.join(jobsmod.ready_dir(self.out_dir), f"{cid}.jpg")
+        if not os.path.exists(mp4):
+            return []
+        items = []
+        for plat in platforms:
+            if plat == "youtube":
+                m = meta.get("shorts") or {}
+                items.append({"platform": "youtube", "clip": cid, "mp4": mp4, "cover": cover,
+                              "title": (m.get("title") or "")[:100], "description": m.get("caption") or "",
+                              "hashtags": m.get("hashtags") or [], "privacy": privacy or "public", "when": when})
+            elif plat == "tiktok":
+                m = meta.get("tiktok") or {}
+                items.append({"platform": "tiktok", "clip": cid, "mp4": mp4, "cover": cover,
+                              "title": (m.get("title") or "")[:100], "caption": m.get("caption") or "",
+                              "hashtags": m.get("hashtags") or [], "when": when})
+        return items
+
+    def finish_post_approved(self, platforms, when: int, privacy: str) -> dict:
+        """Post every APPROVED clip to the chosen platforms. Clips already downloaded are queued now;
+        approved clips whose export is missing/stale are rendered first, then auto-posted on completion."""
+        from . import jobs as jobsmod, posting
+        platforms = [p for p in (platforms or []) if p in ("youtube", "tiktok")]
+        if not platforms:
+            return {"error": "Pick at least one platform."}
+        with self.lock:
+            approved = [c["id"] for c in self.project["clips"] if c.get("approved") is True]
+            ready_ids, render_ids = [], []
+            for cid in approved:
+                c = self.find(cid)
+                fresh = (_export_sig(c) == c.get("export_sig")
+                         and os.path.exists(os.path.join(jobsmod.ready_dir(self.out_dir), f"{cid}.mp4")))
+                (ready_ids if fresh else render_ids).append(cid)
+            for cid in render_ids:                         # post these as soon as their export finishes
+                self.pending_post[cid] = {"platforms": platforms, "when": when, "privacy": privacy}
+        P = posting.init(self.cfg)
+        posted = 0
+        for cid in ready_ids:
+            items = self._post_items(cid, platforms, when, privacy)
+            if items:
+                P.enqueue(items)
+                posted += 1
+        for cid in render_ids:
+            self.start_render(cid, "export")
+        return {"approved": len(approved), "posted": posted, "rendering": len(render_ids)}
+
+    def _fire_pending_post(self, cid: str) -> None:
+        """After an export render finishes, post the clip if a batch-post was queued for it."""
+        with self.lock:
+            pp = self.pending_post.pop(cid, None)
+        if not pp:
+            return
+        try:
+            items = self._post_items(cid, pp["platforms"], pp["when"], pp["privacy"])
+            if items:
+                from . import posting
+                posting.init(self.cfg).enqueue(items)
+                log(f"[server] auto-posted {cid} after export ({len(items)} item(s)).")
+        except Exception as e:  # noqa: BLE001
+            log(f"[server] auto-post after export failed for {cid}: {e}")
+
+    def delete_rejected(self) -> dict:
+        """Remove every REJECTED clip from the active batch: delete its rendered files (base, export,
+        and the 'Ready to post' copy + cover) and drop it from project.json. Generated files only —
+        the source VOD is never touched, and clips can be re-made anytime."""
+        from . import jobs as jobsmod
+        ready = jobsmod.ready_dir(self.out_dir)
+        removed = 0
+        with self.lock:
+            keep, drop = [], []
+            for c in self.project["clips"]:
+                (drop if c.get("approved") is False else keep).append(c)
+            for c in drop:
+                cid = c["id"]
+                self.pending_post.pop(cid, None)
+                for path in (os.path.join(self.out_dir, c.get("file") or f"{cid}.mp4"),
+                             os.path.join(self.out_dir, c.get("export_file") or f"{cid}.export.mp4"),
+                             os.path.join(ready, f"{cid}.mp4"),
+                             os.path.join(ready, f"{cid}.jpg")):
+                    try:
+                        if os.path.exists(path):
+                            os.remove(path)
+                    except OSError:
+                        pass
+                removed += 1
+            self.project["clips"] = keep
+            self.save_locked()
+        log(f"[server] deleted {removed} rejected clip(s) from {os.path.basename(self.out_dir)}")
+        return {"deleted": removed}
+
     def open_ready_folder(self) -> bool:
         """Open the 'Ready to post' folder (the clean finished clips) in Explorer."""
         if not self.active:
@@ -440,6 +541,8 @@ class State:
                 self.cancels.pop(jid, None)
                 if self.latest.get((cid, kind)) == jid:
                     self.latest.pop((cid, kind), None)
+            if export and status == "done":                # batch-finish: post this clip now its export is ready
+                self._fire_pending_post(cid)
 
     # ---- long-form (isolated from the clip pipeline; reuses the job/cancel infra) ----
     def lf_manifest(self) -> dict:
@@ -724,6 +827,19 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({"ok": posting.init(STATE.cfg).cancel(body.get("id"))})
             if p == "/api/render_approved":
                 return self._render_approved()
+            if p == "/api/finish/post_approved":
+                if not STATE.active:
+                    return self._json({"error": "Open a clip batch first."}, 400)
+                try:
+                    when = int(float(body.get("when") or 0))
+                except (TypeError, ValueError):
+                    when = 0
+                r = STATE.finish_post_approved(body.get("platforms"), when, body.get("privacy") or "public")
+                return self._json(r, 400 if r.get("error") else 200)
+            if p == "/api/finish/delete_rejected":
+                if not STATE.active:
+                    return self._json({"error": "Open a clip batch first."}, 400)
+                return self._json(STATE.delete_rejected())
             if p == "/api/longform/plan":
                 return self._json({"segments": STATE.plan_longform()})
             if p.startswith("/api/longform/") and p.endswith("/render"):
@@ -891,7 +1007,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def _enqueue_posts(self, body):
         """Resolve a clip's finished file + per-platform metadata and queue it for upload now/later."""
-        from . import jobs as jobsmod, posting
+        from . import posting
         if not STATE.active:
             return self._json({"error": "Open a clip batch first."}, 400)
         cid = body.get("clip") or ""
@@ -903,28 +1019,11 @@ class Handler(BaseHTTPRequestHandler):
         except (TypeError, ValueError):
             when = 0
         with STATE.lock:
-            c = STATE.find(cid)
-            if not c:
+            if not STATE.find(cid):
                 return self._json({"error": "no such clip"}, 404)
-            meta = copy.deepcopy(c.get("metadata") or {})
-        ready = jobsmod.ready_dir(STATE.out_dir)
-        mp4 = os.path.join(ready, f"{cid}.mp4")
-        cover = os.path.join(ready, f"{cid}.jpg")
-        if not os.path.exists(mp4):
+        items = STATE._post_items(cid, platforms, when, body.get("privacy") or "public")
+        if not items:
             return self._json({"error": "This clip isn't downloaded yet — click ⬇ Download first."}, 400)
-        items = []
-        for plat in platforms:
-            if plat == "youtube":
-                m = meta.get("shorts") or {}
-                items.append({"platform": "youtube", "clip": cid, "mp4": mp4, "cover": cover,
-                              "title": (m.get("title") or "")[:100], "description": m.get("caption") or "",
-                              "hashtags": m.get("hashtags") or [],
-                              "privacy": body.get("privacy") or "public", "when": when})
-            else:
-                m = meta.get("tiktok") or {}
-                items.append({"platform": "tiktok", "clip": cid, "mp4": mp4, "cover": cover,
-                              "title": (m.get("title") or "")[:100], "caption": m.get("caption") or "",
-                              "hashtags": m.get("hashtags") or [], "when": when})
         P = posting.init(STATE.cfg)
         ids = P.enqueue(items)
         return self._json({"ok": True, "ids": ids, "state": P.state()})

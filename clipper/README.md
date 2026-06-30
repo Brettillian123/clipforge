@@ -47,7 +47,9 @@ $env:PYTHONPATH = (Get-Location)
 **Left — clip browser.** Thumbnails of every clip with score + length. An "edits" tag shows when a clip
 has changes not yet in its downloaded file. Filter by New / Approved / Rejected. **✨ AI titles (all)**
 writes a viral title + caption + hashtags for every clip in one click (needs an API key).
-**Export approved (N)** renders the final files for everything you've approved.
+**Export approved (N)** renders the final files for everything you've approved. **✅ Finish review** is
+the end-of-pass one-stop: it posts every **approved** clip to your connected accounts (rendering any that
+aren't downloaded yet, then auto-posting) and deletes the **rejected** ones in one place.
 
 **Center — the live stage.**
 - Click a clip and it **just plays**. Whatever you add — text, shapes, emoji, chat — appears
