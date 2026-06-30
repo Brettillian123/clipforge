@@ -55,7 +55,8 @@ def _voice() -> str:
         "moment truly earns them. "
         "HARD RULES: no emojis anywhere (titles, captions, descriptions, hashtags), and never use em "
         "dashes; use commas or periods instead. Keep hashtags out of the caption sentence, vary the "
-        "phrasing across clips, and never flatten everything into dull all-lowercase."
+        "phrasing across clips, and START every caption, title, and sentence with a capital letter "
+        "(mid-line CAPS for emphasis are still welcome)."
     )
 
 
@@ -147,10 +148,11 @@ def _platform_meta(cfg, item: dict) -> dict:
     platform; emoji stripped defensively; #Shorts added to the YouTube tags automatically."""
     from . import meta as _meta
     clean = _meta.clean_copy                        # strips emoji + em dashes, keeps CAPS
-    hook = clean(item.get("hook") or item.get("youtube_title") or "")[:60]
-    tt_cap = clean(item.get("tiktok_caption") or "")
-    yt_title = clean(item.get("youtube_title") or hook)[:60]
-    yt_desc = clean(item.get("youtube_desc") or "")
+    txt = lambda v: _meta.sentence_case_starts(clean(v))   # + capitalize each sentence start
+    hook = txt(item.get("hook") or item.get("youtube_title") or "")[:60]
+    tt_cap = txt(item.get("tiktok_caption") or "")
+    yt_title = txt(item.get("youtube_title") or hook)[:60]
+    yt_desc = txt(item.get("youtube_desc") or "")
     tags = []
     for t in _meta.coerce_hashtags(item.get("hashtags"), limit=6):
         t = clean(t)                                # strip emoji out of tags too

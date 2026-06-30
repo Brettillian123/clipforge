@@ -36,6 +36,17 @@ def clean_copy(s: str) -> str:
     return re.sub(r"\s{2,}", " ", s).strip(" ,|·")
 
 
+# Capitalize the first letter of the text and of each new sentence (after . ! ?), allowing leading
+# quotes/brackets. Only ever UPPERCASES a sentence-initial letter -> mid-line CAPS (BRO, INSANE) and
+# number-led starts (1v3) are left untouched.
+_SENT_CAP = re.compile(r"""(^|[.!?]\s+)(["'(\[\{]*)([a-z])""")
+
+
+def sentence_case_starts(s: str) -> str:
+    """Ensure every caption/sentence starts with a capital letter, without lowercasing anything else."""
+    return _SENT_CAP.sub(lambda m: m.group(1) + m.group(2) + m.group(3).upper(), s or "")
+
+
 GAME_HINTS = {
     "Escape from Tarkov": {"tarkov", "scav", "raid", "extract", "pmc", "loot", "magazine", "stash"},
     "Meccha Chameleon": {"prop", "hunt", "hider", "hunter", "chameleon", "caught", "infection", "hide", "seek"},
