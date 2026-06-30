@@ -45,7 +45,8 @@ $env:PYTHONPATH = (Get-Location)
 ## The Studio editor — what each part does
 
 **Left — clip browser.** Thumbnails of every clip with score + length. An "edits" tag shows when a clip
-has changes not yet in its downloaded file. Filter by New / Approved / Rejected. **✨ AI titles (all)**
+has changes not yet in its downloaded file; a green **✓ posted** tag shows once a clip has been uploaded
+(and the post box lists where + when, so you don't double-post). Filter by New / Approved / Rejected. **✨ AI titles (all)**
 writes a viral title + caption + hashtags for every clip in one click (needs an API key).
 **Export approved (N)** renders the final files for everything you've approved. **✅ Finish review** is
 the end-of-pass one-stop: it posts every **approved** clip to your connected accounts (rendering any that

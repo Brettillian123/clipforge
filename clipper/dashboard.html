@@ -399,8 +399,9 @@ function renderClipList(){const wrap=$("#clips");wrap.innerHTML="";
     const rr=S.renders[c.id];
     const rchip=rr?`<span class="chip rendering">⏳ ${rr.status==="queued"?"queued":(rr.progress!=null?rr.progress+"%":"…")}</span>`
                  :(c.export_stale?'<span class="chip" style="color:var(--gold)">edits</span>':'');
+    const pchip=(c.posted&&Object.keys(c.posted).length)?`<span class="chip done" title="Posted to ${Object.keys(c.posted).map(p=>p==='youtube'?'YouTube':'TikTok').join(' + ')}">✓ posted</span>`:'';
     d.innerHTML=`<img loading="lazy" src="/api/thumb?clip=${c.id}&v=${thumbV(c)}" onerror="this.style.opacity=.2">
-      <div class="meta"><div class="row"><b>#${c.rank}</b><span class="sub">${Math.round(totalDur(c))}s · ${Math.round(c.score)}</span><span class="spacer"></span>${rchip}</div></div>`;
+      <div class="meta"><div class="row"><b>#${c.rank}</b><span class="sub">${Math.round(totalDur(c))}s · ${Math.round(c.score)}</span><span class="spacer"></span>${pchip}${rchip}</div></div>`;
     d.dataset.id=c.id;d.onclick=()=>selectClip(c.id);wrap.appendChild(d);});
   $("#renderall").textContent=`Export approved (${S.clips.filter(c=>c.approved===true).length})`;}
 
@@ -880,6 +881,10 @@ function postActions(c){const ps=S.posting||{},yt=ps.youtube||{},tt=ps.tiktok||{
   const ttlab=tt.connected?("TikTok"+(tt.handle?" · "+he(tt.handle):"")):"TikTok — not connected";
   const stale=(!c.export_exists||c.export_stale);
   let b='<div class="postbox">';
+  if(c.posted&&Object.keys(c.posted).length){
+    const parts=Object.entries(c.posted).map(([p,info])=>{const nm=p==='youtube'?'▶️ YouTube':'🎵 TikTok';const u=info&&info.url;
+      return (u&&u.startsWith('http'))?`<a href="${u}" target="_blank" rel="noopener" style="color:var(--gold)">${nm}</a>`:nm;});
+    b+=`<div class="sub" style="margin-bottom:7px;color:var(--ok)">✓ Already posted: ${parts.join(' · ')} <span style="color:var(--muted)">(posting again makes another copy)</span></div>`;}
   if(!anyConn){b+=`<div class="sub">Connect an account to post from here.</div><div class="row" style="margin-top:8px"><button class="sm primary" onclick="openConn()">🔗 Connect accounts</button></div></div>`;return b;}
   b+=`<label class="pchk"><input type="checkbox" id="pShorts" ${yt.connected?"checked":"disabled"}> ▶️ ${ytlab}</label>`;
   if(yt.connected)b+=`<div class="row" style="margin:0 0 2px 25px"><span class="sub">Visibility</span><select id="pPriv" style="width:auto"><option value="public">Public</option><option value="unlisted">Unlisted</option><option value="private">Private</option></select></div>

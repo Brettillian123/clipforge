@@ -93,6 +93,7 @@ class Poster:
         self._wake = threading.Event()
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
+        self.on_uploaded = None              # optional callback(item, result) fired after a successful upload
 
     # -- lifecycle ----------------------------------------------------------
     def start(self) -> None:
@@ -499,6 +500,11 @@ class Poster:
             res = self.youtube_upload(it, pcb) if plat == "youtube" else self.tiktok_upload(it, pcb)
             self._set(jid, status="uploaded", result=res, error="", progress=100)
             log(f"[posting] {plat} upload done for {it.get('clip')} -> {res}")
+            if self.on_uploaded:
+                try:
+                    self.on_uploaded(it, res)            # let the server stamp a 'posted' marker on the clip
+                except Exception as e:  # noqa: BLE001
+                    log(f"[posting] on_uploaded hook error: {e}")
         except Exception as e:  # noqa: BLE001
             self._set(jid, status="error", error=str(e))
             log(f"[posting] {plat} upload {jid} failed: {e}")

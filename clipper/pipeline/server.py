@@ -275,12 +275,12 @@ class State:
         for plat in platforms:
             if plat == "youtube":
                 m = meta.get("shorts") or {}
-                items.append({"platform": "youtube", "clip": cid, "mp4": mp4, "cover": cover,
+                items.append({"platform": "youtube", "clip": cid, "out_dir": self.out_dir, "mp4": mp4, "cover": cover,
                               "title": (m.get("title") or "")[:100], "description": m.get("caption") or "",
                               "hashtags": m.get("hashtags") or [], "privacy": privacy or "public", "when": when})
             elif plat == "tiktok":
                 m = meta.get("tiktok") or {}
-                items.append({"platform": "tiktok", "clip": cid, "mp4": mp4, "cover": cover,
+                items.append({"platform": "tiktok", "clip": cid, "out_dir": self.out_dir, "mp4": mp4, "cover": cover,
                               "title": (m.get("title") or "")[:100], "caption": m.get("caption") or "",
                               "hashtags": m.get("hashtags") or [], "when": when})
         return items
@@ -652,6 +652,32 @@ class State:
 
 
 STATE: State | None = None
+
+
+def _mark_posted(item: dict, result: dict) -> None:
+    """Stamp a clip's project.json with a per-platform 'posted' marker after a successful upload, so the
+    Studio can show what's already gone out. Works whether or not that batch is the one open right now."""
+    import time as _t
+    out_dir, cid, plat = item.get("out_dir"), item.get("clip"), item.get("platform")
+    if not (out_dir and cid and plat):
+        return
+    mark = {"at": int(_t.time()), "url": (result or {}).get("url") or (result or {}).get("publish_id") or ""}
+    try:
+        if STATE and STATE.active and STATE.out_dir and os.path.abspath(STATE.out_dir) == os.path.abspath(out_dir):
+            with STATE.lock:                          # the open batch -> update memory + disk
+                c = STATE.find(cid)
+                if c is not None:
+                    c.setdefault("posted", {})[plat] = mark
+                    STATE.save_locked()
+            return
+        pj = proj.load_project(out_dir)               # a different batch -> update its file on disk
+        for c in pj.get("clips", []):
+            if c.get("id") == cid:
+                c.setdefault("posted", {})[plat] = mark
+                proj.save_project(out_dir, pj)
+                break
+    except Exception as e:  # noqa: BLE001
+        log(f"[server] could not mark {cid} posted: {e}")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -1422,7 +1448,7 @@ def serve(cfg: config.Config, library_root: str, active_dir: str | None = None, 
     _HTTPD = httpd
     try:
         from . import posting               # start the upload scheduler (fires due posts in the background)
-        posting.init(cfg)
+        posting.init(cfg).on_uploaded = _mark_posted   # stamp clips with a 'posted' marker on success
     except Exception as e:  # noqa: BLE001  (posting is optional; never block the dashboard)
         log(f"[posting] scheduler not started: {e}")
     where = f"{len(STATE.project['clips'])} clips" if STATE.active else f"home — pick a VOD from {library_root}"
