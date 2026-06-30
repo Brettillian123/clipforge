@@ -54,7 +54,8 @@ TT_INBOX_INIT = "https://open.tiktokapis.com/v2/post/publish/inbox/video/init/"
 TT_STATUS = "https://open.tiktokapis.com/v2/post/publish/status/fetch/"
 TT_USERINFO = "https://open.tiktokapis.com/v2/user/info/"
 TT_SCOPES = "user.info.basic,video.upload"
-TT_MAX_BYTES = 64 * 1024 * 1024          # single-chunk FILE_UPLOAD ceiling for the inbox endpoint
+TT_MAX_BYTES = 64 * 1024 * 1024          # files up to this upload in ONE chunk; larger are split
+TT_CHUNK = 32 * 1024 * 1024              # per-chunk size for multi-chunk uploads (TikTok allows 5..64MB)
 
 
 # ----------------------------------------------------------------------------- store
@@ -374,13 +375,17 @@ class Poster:
         tok = self._tiktok_token()
         path = item["mp4"]
         size = os.path.getsize(path)
-        if size > TT_MAX_BYTES:
-            raise RuntimeError(f"Clip is {size // (1024 * 1024)} MB — over TikTok's {TT_MAX_BYTES // (1024 * 1024)} MB "
-                               "single-upload limit. Trim it shorter.")
+        # TikTok FILE_UPLOAD chunking: <=64MB goes in one chunk; larger files split into equal chunks
+        # (each 5..64MB) with the final chunk absorbing the remainder. total = floor(size/chunk).
+        if size <= TT_MAX_BYTES:
+            chunk_size, total = size, 1
+        else:
+            chunk_size = TT_CHUNK
+            total = size // chunk_size
         init = requests.post(TT_INBOX_INIT, timeout=60,
                              headers={"Authorization": f"Bearer {tok}", "Content-Type": "application/json"},
                              json={"source_info": {"source": "FILE_UPLOAD", "video_size": size,
-                                                   "chunk_size": size, "total_chunk_count": 1}})
+                                                   "chunk_size": chunk_size, "total_chunk_count": total}})
         j = init.json()
         err = (j.get("error") or {})
         if err and err.get("code") not in (None, "ok"):
@@ -390,14 +395,18 @@ class Poster:
         if not upload_url:
             raise RuntimeError(f"TikTok init returned no upload URL: {j}")
         with open(path, "rb") as fh:
-            blob = fh.read()
-        put = requests.put(upload_url, data=blob, timeout=900,
-                           headers={"Content-Type": "video/mp4", "Content-Length": str(size),
-                                    "Content-Range": f"bytes 0-{size - 1}/{size}"})
-        if put.status_code not in (200, 201, 204):
-            raise RuntimeError(f"TikTok upload failed ({put.status_code}): {put.text[:200]}")
-        if progress_cb:
-            progress_cb(1.0)
+            for i in range(total):
+                start = i * chunk_size
+                end = size - 1 if i == total - 1 else start + chunk_size - 1   # last chunk -> EOF
+                fh.seek(start)
+                blob = fh.read(end - start + 1)
+                put = requests.put(upload_url, data=blob, timeout=900,
+                                   headers={"Content-Type": "video/mp4", "Content-Length": str(len(blob)),
+                                            "Content-Range": f"bytes {start}-{end}/{size}"})
+                if put.status_code not in (200, 201, 204, 206):   # 206 = chunk accepted; 201 = final chunk done
+                    raise RuntimeError(f"TikTok upload failed ({put.status_code}): {put.text[:200]}")
+                if progress_cb:
+                    progress_cb((i + 1) / total)
         return {"publish_id": publish_id, "where": "TikTok drafts"}
 
     # =======================================================================
