@@ -24,7 +24,6 @@ the rest of ClipForge is unaffected and the posting actions surface a friendly "
 """
 from __future__ import annotations
 
-import base64
 import hashlib
 import json
 import os
@@ -287,8 +286,10 @@ class Poster:
         if not (cr.get("client_key") and cr.get("client_secret")):
             raise RuntimeError("Add your TikTok client key + secret first (Connections ▸ TikTok).")
         verifier = secrets.token_hex(48)                # 96 chars, in PKCE's 43..128 range
-        challenge = base64.urlsafe_b64encode(
-            hashlib.sha256(verifier.encode()).digest()).decode().rstrip("=")
+        # TikTok deviates from RFC 7636: code_challenge is the HEX digest of SHA256 (NOT base64url),
+        # while code_challenge_method stays "S256". Sending base64url -> token error
+        # "Code verifier or code challenge is invalid".
+        challenge = hashlib.sha256(verifier.encode()).hexdigest()
         state = secrets.token_urlsafe(16)
         self._pending_tt[state] = verifier
         q = {"client_key": cr["client_key"], "scope": TT_SCOPES, "response_type": "code",
