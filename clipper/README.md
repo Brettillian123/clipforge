@@ -88,18 +88,38 @@ free**: YouTube uploads land **private** (flip to public in YouTube Studio), and
 and paste the client keys into the Studio's **🚀 Posting** panel — OAuth runs through the app's own
 loopback redirect (`http://127.0.0.1:8765/oauth2/<platform>/callback`), so no public website is needed.
 
-**YouTube (Google Cloud Console):**
-1. Create a project → enable **YouTube Data API v3**.
-2. OAuth consent screen → **External** → add yourself under **Test users**.
-3. Credentials → **OAuth client ID** → type **Web application** → add the redirect URI above (the panel
-   shows it, copyable) → Create.
-4. Paste the Client ID + secret into the Posting panel → **Save** → **Connect**.
+Copy the exact redirect URI from each card in the Posting panel (it's authoritative if your port differs).
 
-**TikTok (TikTok for Developers):**
-1. Create an app (keep it in **Sandbox**) → add products **Login Kit** + **Content Posting API**.
-2. Add scopes `user.info.basic` and `video.upload`; add the redirect URI above.
-3. Add your own TikTok account as a **target user** so you can upload to it.
-4. Paste the Client key + secret into the Posting panel → **Save** → **Connect**.
+**YouTube — [Google Cloud Console](https://console.cloud.google.com):**
+1. New project → **APIs & Services → Library** → enable **YouTube Data API v3**.
+2. **APIs & Services → OAuth consent screen** (opens the **Google Auth Platform**): **Get started** →
+   App name + support email → **Audience: External** → developer email → Create. On **Audience**,
+   confirm **Testing** and add yourself under **Test users**.
+3. **Data Access → Add or remove scopes** → add `…/auth/youtube.upload` and `…/auth/youtube.readonly` → Save.
+4. **Clients → Create client** → application type **Web application** (⚠️ *not* Desktop — only a Web
+   client lets you register the exact loopback path) → **Authorized redirect URIs** → paste the
+   YouTube redirect URI (exact, no trailing slash) → Create.
+5. Paste the **Client ID + secret** (shown once — also Download JSON) into the Posting panel →
+   **Save** → **Connect** → on the "unverified app" screen choose **Advanced → Go to ClipForge**.
+
+*Expect:* uploads land **Private** (flip to public in YouTube Studio until you pass Google's audit), and
+Testing-mode sign-in expires ~weekly (just reconnect).
+
+**TikTok — [TikTok for Developers](https://developers.tiktok.com):**
+1. **Manage apps → Connect an app** → fill basic info, and under **Platforms select Desktop**
+   (⚠️ *critical* — the **Web** platform rejects `http://127.0.0.1`; **Desktop** allows the loopback URI
+   natively, no tunnel). Paste your privacy/terms URLs if prompted.
+2. **Add products: Login Kit + Content Posting API.**
+3. Add scopes **`user.info.basic` + `video.upload`** only — do **not** add `video.publish` or enable
+   **Direct Post** (those trigger the public-posting audit; `video.upload` = the drafts path, no audit).
+4. Under **Login Kit → Redirect URI**, paste the TikTok redirect URI exactly (match what the app sends).
+5. Toggle to **Sandbox → Create Sandbox**, then **Target users → Add account** and log into your own
+   TikTok (a new target user can take up to ~1 hour to activate).
+6. Paste the **Client key + secret** (use the **Sandbox** credentials if shown) into the Posting panel →
+   **Save** → **Connect**.
+
+*Expect:* clips upload to your **TikTok drafts** — open the app, add the caption, tap Post (public is your
+choice there). Sandbox caps uploads at ~128 MB (clips are far under).
 
 Tokens are stored locally in `<clipforge-home>/posting.json` and are never committed. Scheduled posts
 fire from a local timer, so the app must be running at the scheduled time.
