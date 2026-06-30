@@ -984,24 +984,19 @@ class Handler(BaseHTTPRequestHandler):
         return self._json({"ok": True, "changes": changes, "clip": snapshot, "job": job})
 
     def _ai_titles(self):
-        from . import meta as _meta, rerank
+        from . import rerank
         with STATE.lock:
             snap = [{"id": c["id"], "keywords": c.get("keywords", []),
                      "profanity": c.get("profanity", False), "transcript": c.get("transcript", "")}
                     for c in STATE.project["clips"]]
-        base = rerank.write_titles(STATE.cfg, snap)
+        base = rerank.write_titles(STATE.cfg, snap)   # {cid: {"tiktok": {...}, "shorts": {...}}}
         with STATE.lock:
             n = 0
             for c in STATE.project["clips"]:
-                b = base.get(c["id"])
-                if not b:
+                md = base.get(c["id"])
+                if not md:
                     continue
-                tags = _meta.coerce_hashtags(b.get("hashtags"))
-                short_tags = (["#Shorts"] + [t for t in tags if t.lower() != "#shorts"])[:5]
-                c["metadata"] = {
-                    "tiktok": {"title": b["title"], "caption": b["caption"], "hashtags": tags[:4]},
-                    "shorts": {"title": b["title"], "caption": b["caption"], "hashtags": short_tags},
-                }
+                c["metadata"] = md                    # per-platform copy already shaped by rerank
                 n += 1
             STATE.save_locked()
         return self._json({"ok": True, "updated": n})

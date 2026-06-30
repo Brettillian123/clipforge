@@ -96,8 +96,8 @@ def build_project(cfg: config.Config, vod: str, cands: list, ai: bool) -> dict:
         cid = f"clip{rank:02d}"
         md = {}
         if ai and getattr(c, "meta", None):
-            base = dict(c.meta)
-            md = {"tiktok": base, "shorts": {**base, "hashtags": (["#Shorts"] + base.get("hashtags", []))[:5]}}
+            m = c.meta                                  # already per-platform (rerank._platform_meta)
+            md = {"tiktok": dict(m.get("tiktok") or {}), "shorts": dict(m.get("shorts") or {})}
         else:
             md = {p: meta.local_metadata(cfg, c, p) for p in ("tiktok", "shorts")}
         elements = []

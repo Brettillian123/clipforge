@@ -37,6 +37,39 @@ def _cta(cfg) -> str:
     return f"live on Twitch @{h}" if h else "follow for more"
 
 
+def _voice() -> str:
+    """The anti-AI-copy rules: sound like the streamer, be specific, no emoji. This is the core of the
+    'make captions feel authentic' request."""
+    return (
+        "VOICE — write like a real person, never like AI marketing copy. Sound the way this streamer would "
+        "actually talk: casual, specific, a little dry and funny. The #1 rule is to be SPECIFIC to what "
+        "literally happens in THIS clip — name the actual thing ('chat voted to sell my whole stash', "
+        "'third wipe on the same boss', 'he proposed to me mid-raid') instead of vague hype. Generic hype "
+        "is the dead giveaway of fake copy, so BAN it: no 'you won't believe', 'this was insane', 'pure "
+        "chaos', 'wait for it', 'broke me', 'absolute cinema', 'the way that…', and no empty intensifiers "
+        "(insane / crazy / epic / wild / unbelievable) used as filler. "
+        "NO EMOJIS anywhere — not in titles, captions, descriptions, or hashtags. None, ever. "
+        "Keep hashtags out of the caption sentence. Don't Title-Case Every Word, don't stack exclamation "
+        "points, and don't oversell — a slightly understated, real line beats a hyped one. Vary the "
+        "phrasing across clips; never reuse one template."
+    )
+
+
+def _platforms(cfg) -> str:
+    """TikTok and YouTube need DIFFERENT copy — the user explicitly wants them tailored, not identical."""
+    return (
+        "TWO PLATFORMS, DIFFERENT COPY — never write identical text for both; duplicate copy hurts reach "
+        "and search on each. "
+        "TikTok caption: conversational and authentic, first person, lowercase is fine, like a caption a "
+        "real gamer would actually post. One short line (sometimes two), about 70-140 characters. Lead with "
+        f"the specific moment, then end by pointing viewers to the stream naturally (e.g. {_cta(cfg)}). "
+        "YouTube Shorts title: a clear, SEARCHABLE headline — put the GAME NAME and the specific "
+        "moment/outcome in the first ~40 characters (the feed truncates there), so it works in search and "
+        "in-feed. Curiosity is good, but stay accurate; no bait. The YouTube description is one plain, "
+        "readable line of context."
+    )
+
+
 def _system(cfg) -> str:
     return (
         f"You are a short-form clip editor for {_channel_descriptor(cfg)} "
@@ -54,8 +87,32 @@ def _system(cfg) -> str:
         "queues, loading, and idle social chit-chat with no game stakes (tells: 'are you ready', 'who's "
         "queuing', 'waiting for', 'one more game', talking about unrelated real-life stuff). If a candidate "
         "is just the streamer chatting in a lobby with nothing happening in the game, it is NOT a good clip "
-        "no matter how much talking there is. Re-rank by viral potential, not by the input order."
+        "no matter how much talking there is. Re-rank by viral potential, not by the input order.\n\n"
+        + _voice() + "\n\n" + _platforms(cfg)
     )
+
+
+def _platform_meta(cfg, item: dict) -> dict:
+    """Map one AI result into the per-platform metadata the app stores: a punchy on-screen hook +
+    conversational TikTok caption, and a searchable YouTube title + plain description. Distinct copy per
+    platform; emoji stripped defensively; #Shorts added to the YouTube tags automatically."""
+    from . import meta as _meta
+    clean = _meta.strip_emoji
+    hook = clean(item.get("hook") or item.get("youtube_title") or "")[:60]
+    tt_cap = clean(item.get("tiktok_caption") or "")
+    yt_title = clean(item.get("youtube_title") or hook)[:60]
+    yt_desc = clean(item.get("youtube_desc") or "")
+    tags = []
+    for t in _meta.coerce_hashtags(item.get("hashtags"), limit=6):
+        t = clean(t)                                # strip emoji out of tags too
+        if t and t != "#" and t.lower() != "#shorts":
+            tags.append(t)
+    tags = tags[:5]
+    yt_tags = (["#Shorts"] + tags)[:5]
+    return {
+        "tiktok": {"title": hook, "caption": tt_cap, "hashtags": tags[:5]},
+        "shorts": {"title": yt_title, "caption": yt_desc, "hashtags": yt_tags},
+    }
 
 
 def _user_payload(cfg: config.Config, cands: list, count: int) -> str:
@@ -69,13 +126,20 @@ def _user_payload(cfg: config.Config, cands: list, count: int) -> str:
             "transcript": c.text[:700],
         })
     instr = {
-        "task": f"Select the {count} best clips and rank them best-first.",
+        "task": f"Select the {count} best clips and rank them best-first. For each, write post copy that "
+                "follows the VOICE and TWO-PLATFORM rules exactly (TikTok and YouTube must read differently).",
         "for_each": {
             "id": "the candidate id you are selecting",
             "llm_score": "0-100 your viral-potential score",
-            "title": "<=60 chars, punchy, front-load the payoff/keyword (works as a YouTube Shorts title)",
-            "caption": f"1 short line for TikTok; end with: {_cta(cfg)}",
-            "hashtags": "4-5 tags; mix 1-2 broad + 2-3 niche/game-specific; include #Shorts for youtube",
+            "hook": "<=55 chars: the punchy on-screen hook = the specific moment (also burned in as the "
+                    "titlecard); no emoji",
+            "tiktok_caption": "conversational TikTok caption, ~70-140 chars: specific moment first, then a "
+                              f"natural nod to the stream ({_cta(cfg)}); no emoji, no hashtags in the text",
+            "youtube_title": "<=60 chars (aim 25-45): searchable — game name + the specific moment/outcome "
+                             "in the first ~40 chars; no emoji, no clickbait",
+            "youtube_desc": "one plain, readable line of context for the YouTube description; no emoji",
+            "hashtags": "4-5 tags as a JSON array, mix 1-2 broad + 2-3 niche/game-specific; do NOT include "
+                        "#Shorts (added automatically); no emoji",
             "trim_start_delta_s": "optional, -3..3, nudge start (will be re-validated against pauses)",
             "trim_end_delta_s": "optional, -3..3",
             "platform_notes": {"tiktok": "profanity/safety note or ''", "shorts": "note or ''"},
@@ -124,23 +188,18 @@ def rerank(cfg: config.Config, cands: list, count: int) -> list:
         de = max(-cfg.ai_max_trim_s, min(cfg.ai_max_trim_s, float(item.get("trim_end_delta_s", 0) or 0)))
         c.start = round(max(0.0, c.start + ds), 2)
         c.end = round(c.end + de, 2)
-        from . import meta as _meta
-        c.meta = {
-            "title": item.get("title", "")[:60],
-            "caption": item.get("caption", ""),
-            "hashtags": _meta.coerce_hashtags(item.get("hashtags")),
-            "platform_notes": item.get("platform_notes", {}),
-            "reason": item.get("reason", ""),
-            "source": "claude",
-        }
+        c.meta = _platform_meta(cfg, item)          # {"tiktok": {...}, "shorts": {...}}
+        c.meta["platform_notes"] = item.get("platform_notes", {})
+        c.meta["reason"] = item.get("reason", "")
+        c.meta["source"] = "claude"
         chosen.append(c)
     log(f"[rerank] Claude selected {len(chosen)} clips.")
     return chosen or cands
 
 
 def write_titles(cfg: config.Config, clips: list) -> dict:
-    """Write viral title/caption/hashtags for an EXISTING set of clips (no re-ranking,
-    no render). Returns {clip_id: {title, caption, hashtags[]}}. One Claude call."""
+    """Write per-platform post copy for an EXISTING set of clips (no re-ranking, no render). Returns
+    {clip_id: {"tiktok": {title,caption,hashtags}, "shorts": {title,caption,hashtags}}}. One Claude call."""
     from .util import get_api_key
     key = get_api_key()
     if not key:
@@ -150,24 +209,30 @@ def write_titles(cfg: config.Config, clips: list) -> dict:
               "profanity": c.get("profanity", False), "transcript": (c.get("transcript", "") or "")[:700]}
              for c in clips]
     payload = {
-        "task": f"For EACH clip id, write short-form metadata for {_channel_descriptor(cfg)}. "
-                "Title <=60 chars, punchy, front-load the payoff; 1-2 emoji ok. "
-                f"Caption: one line, end with '{_cta(cfg)}'. "
-                "hashtags: 3-4 as a JSON ARRAY of strings (e.g. ['#Roblox','#Shorts']), mix broad + niche/game.",
+        "task": f"For EACH clip id, write short-form post copy for {_channel_descriptor(cfg)}. Follow the "
+                "VOICE and TWO-PLATFORM rules exactly — the TikTok and YouTube copy must read differently.",
+        "for_each": {
+            "hook": "<=55 chars: the specific on-screen moment; no emoji",
+            "tiktok_caption": "conversational, ~70-140 chars: specific moment first, then a natural nod to "
+                              f"the stream ({_cta(cfg)}); no emoji, no hashtags in the text",
+            "youtube_title": "<=60 chars (aim 25-45): searchable — game + specific moment in the first ~40 "
+                             "chars; no emoji, no bait",
+            "youtube_desc": "one plain, readable line of context; no emoji",
+            "hashtags": "3-5 tags as a JSON ARRAY; broad + niche/game; do NOT include #Shorts; no emoji",
+        },
         "clips": items,
-        "output": "Return ONLY JSON: {\"clips\":[{\"id\":\"clipNN\",\"title\":\"...\",\"caption\":\"...\","
-                  "\"hashtags\":[\"#a\",\"#b\"]}]}. hashtags MUST be a JSON array, never a string.",
+        "output": "Return ONLY JSON: {\"clips\":[{\"id\":\"clipNN\",\"hook\":\"...\",\"tiktok_caption\":\"...\","
+                  "\"youtube_title\":\"...\",\"youtube_desc\":\"...\",\"hashtags\":[\"#a\",\"#b\"]}]}. "
+                  "hashtags MUST be a JSON array, never a string.",
     }
     client = anthropic.Anthropic(api_key=key)
-    log(f"[titles] writing metadata for {len(items)} clips with {cfg.ai_model} ...")
-    msg = client.messages.create(model=cfg.ai_model, max_tokens=3000, system=_system(cfg),
+    log(f"[titles] writing per-platform metadata for {len(items)} clips with {cfg.ai_model} ...")
+    msg = client.messages.create(model=cfg.ai_model, max_tokens=3500, system=_system(cfg),
                                  messages=[{"role": "user", "content": json.dumps(payload, ensure_ascii=False)}])
     text = "".join(b.text for b in msg.content if getattr(b, "type", "") == "text")
     data = _extract_json(text)
     out = {}
     for it in data.get("clips", []):
         if it.get("id"):
-            out[it["id"]] = {"title": (it.get("title", "") or "")[:60],
-                             "caption": it.get("caption", ""),
-                             "hashtags": it.get("hashtags", [])}
+            out[it["id"]] = _platform_meta(cfg, it)
     return out

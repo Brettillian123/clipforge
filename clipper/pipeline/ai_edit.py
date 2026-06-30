@@ -18,7 +18,10 @@ SYSTEM = (
     "(seconds). Apply the user's instruction by returning ONLY the spec fields that "
     "change, as JSON. Times are absolute VOD seconds. Keep clips self-contained with a "
     "hook in the first ~3s and a clear payoff. Do not cut mid-word: snap segment "
-    "boundaries to the start/end of nearby transcript words."
+    "boundaries to the start/end of nearby transcript words. "
+    "When you rewrite title/caption copy, sound like a real streamer, not AI marketing: be specific to "
+    "what actually happens in the clip, keep the TikTok caption conversational and the YouTube title "
+    "searchable (the two should read differently), and use NO EMOJIS anywhere."
 )
 
 SCHEMA_HINT = {

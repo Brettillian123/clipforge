@@ -4,7 +4,21 @@ Heuristic only - the optional Claude re-rank (rerank.py) writes much better copy
 """
 from __future__ import annotations
 
+import re
+
 from . import config
+
+# We never put emoji in generated titles/captions (they read as AI spam and the burned-in titlecard
+# font has no glyphs for them). This strips any the model slips in. Keeps normal text + punctuation
+# like — … ' (all below U+2190); same range the titlecard cleaner uses.
+_EMOJI_RE = re.compile(
+    "[\U0001F000-\U0001FAFF\U00002190-\U00002BFF\U0000FE00-\U0000FE0F‍™ℹ]", re.UNICODE)
+
+
+def strip_emoji(s: str) -> str:
+    """Remove emoji/pictographs and tidy the whitespace they leave behind."""
+    return re.sub(r"\s{2,}", " ", _EMOJI_RE.sub("", s or "")).strip(" -—|·")
+
 
 GAME_HINTS = {
     "Escape from Tarkov": {"tarkov", "scav", "raid", "extract", "pmc", "loot", "magazine", "stash"},
