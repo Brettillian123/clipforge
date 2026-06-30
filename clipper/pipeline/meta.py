@@ -47,6 +47,17 @@ def sentence_case_starts(s: str) -> str:
     return _SENT_CAP.sub(lambda m: m.group(1) + m.group(2) + m.group(3).upper(), s or "")
 
 
+# Capitalize the standalone pronoun "i" (and contractions i'm / i'll / i've / i'd). \b before the
+# apostrophe means the "i" in i'm is its own token, so this catches contractions too. Words like
+# "in", "is", "it", "into" are untouched (no boundary after their leading i).
+_PRONOUN_I = re.compile(r"\bi\b")
+
+
+def fix_pronoun_i(s: str) -> str:
+    """Uppercase the lone pronoun 'i' -> 'I' (incl. i'm, i'll, i've), leaving real words alone."""
+    return _PRONOUN_I.sub("I", s or "")
+
+
 GAME_HINTS = {
     "Escape from Tarkov": {"tarkov", "scav", "raid", "extract", "pmc", "loot", "magazine", "stash"},
     "Meccha Chameleon": {"prop", "hunt", "hider", "hunter", "chameleon", "caught", "infection", "hide", "seek"},
