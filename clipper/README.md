@@ -86,7 +86,7 @@ arrow keys nudge a selected element · Del delete · Ctrl+Z / Ctrl+Shift+Z undo/
 
 ClipForge posts finished clips to **your own** YouTube + TikTok accounts. It's **semi-automated and
 free**: YouTube uploads land **private** (flip to public in YouTube Studio), and TikTok lands in your
-**drafts** (add the caption and tap Post in the app). You register a developer app on each platform once
+**inbox** (tap the app notification to add a caption and post). You register a developer app on each platform once
 and paste the client keys into the Studio's **🚀 Posting** panel — OAuth runs through the app's own
 loopback redirect (`http://127.0.0.1:8765/oauth2/<platform>/callback`), so no public website is needed.
 
@@ -113,14 +113,14 @@ Testing-mode sign-in expires ~weekly (just reconnect).
    natively, no tunnel). Paste your privacy/terms URLs if prompted.
 2. **Add products: Login Kit + Content Posting API.**
 3. Add scopes **`user.info.basic` + `video.upload`** only — do **not** add `video.publish` or enable
-   **Direct Post** (those trigger the public-posting audit; `video.upload` = the drafts path, no audit).
+   **Direct Post** (those trigger the public-posting audit; `video.upload` = the inbox/draft path, no audit).
 4. Under **Login Kit → Redirect URI**, paste the TikTok redirect URI exactly (match what the app sends).
 5. Toggle to **Sandbox → Create Sandbox**, then **Target users → Add account** and log into your own
    TikTok (a new target user can take up to ~1 hour to activate).
 6. Paste the **Client key + secret** (use the **Sandbox** credentials if shown) into the Posting panel →
    **Save** → **Connect**.
 
-*Expect:* clips upload to your **TikTok drafts** — open the app, add the caption, tap Post (public is your
+*Expect:* clips go to your **TikTok inbox** — open the app, tap the notification to add a caption and post (public is your
 choice there). Sandbox caps uploads at ~128 MB (clips are far under).
 
 Tokens are stored locally in `<clipforge-home>/posting.json` and are never committed. Scheduled posts

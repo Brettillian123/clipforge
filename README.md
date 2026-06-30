@@ -32,7 +32,7 @@ flowchart LR
   E --> X["Render<br/>ffmpeg 9:16 burn-in"]
   X --> RP["Ready to post/"]
   RP --> Y["YouTube Shorts"]
-  RP --> TT["TikTok drafts"]
+  RP --> TT["TikTok inbox"]
 ```
 
 Full design notes: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
@@ -163,8 +163,8 @@ ClipForge ships with neutral defaults. To personalise it **without editing any c
 
 ClipForge can upload finished clips to your own channels and schedule them with a local timer.
 It's **semi-automated and free**: YouTube uploads land **private** until you flip them public in
-Studio (unverified API projects are locked private), and TikTok lands in your **drafts** (you add the
-caption and tap Post in the app). Full hands-off public posting requires each platform's audit, which
+Studio (unverified API projects are locked private), and TikTok is delivered to your **inbox** (open the
+app, tap the notification to add a caption and post). Full hands-off public posting requires each platform's audit, which
 needs a public website — out of scope for a free, local tool.
 
 You connect your own developer apps once (Google Cloud + TikTok for Developers) and paste the client

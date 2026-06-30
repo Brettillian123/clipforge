@@ -884,11 +884,11 @@ function postActions(c){const ps=S.posting||{},yt=ps.youtube||{},tt=ps.tiktok||{
   b+=`<label class="pchk"><input type="checkbox" id="pShorts" ${yt.connected?"checked":"disabled"}> ▶️ ${ytlab}</label>`;
   if(yt.connected)b+=`<div class="row" style="margin:0 0 2px 25px"><span class="sub">Visibility</span><select id="pPriv" style="width:auto"><option value="public">Public</option><option value="unlisted">Unlisted</option><option value="private">Private</option></select></div>
     <div class="sub" style="margin:0 0 6px 25px;font-size:11px;line-height:1.4">Unverified Google projects upload as <b>Private</b> regardless — publish in YouTube Studio. This setting only takes effect once your project passes Google's audit.</div>`;
-  b+=`<label class="pchk"><input type="checkbox" id="pTiktok" ${tt.connected?"checked":"disabled"}> 🎵 ${ttlab} <span class="sub">→ drafts</span></label>`;
+  b+=`<label class="pchk"><input type="checkbox" id="pTiktok" ${tt.connected?"checked":"disabled"}> 🎵 ${ttlab} <span class="sub">→ inbox</span></label>`;
   b+=`<label class="pchk" style="margin-top:7px"><input type="checkbox" id="pSched" onchange="$('#pWhen').style.display=this.checked?'block':'none'"> 🕒 Schedule for later</label><input type="datetime-local" id="pWhen" style="display:none">`;
   b+=`<div class="row" style="margin-top:9px"><button class="sm primary" onclick="postClip()">🚀 Post / schedule</button><button class="sm" onclick="openConn()">⚙ Manage</button></div>`;
   if(stale)b+=`<div class="sub" style="margin-top:7px;color:var(--pending)">⬇ Download this clip first — posting uploads the finished file.</div>`;
-  b+=`<div class="sub" style="margin-top:7px">YouTube uploads to your channel (unverified API projects land <b>Private</b> — flip to Public in Studio). TikTok lands in your <b>drafts</b> — add the caption &amp; tap Post in the app.</div></div>`;
+  b+=`<div class="sub" style="margin-top:7px">YouTube uploads to your channel (unverified API projects land <b>Private</b> — flip to Public in Studio). TikTok goes to your <b>inbox</b> — open the app and tap the notification to add a caption &amp; post.</div></div>`;
   return b;}
 function aiSect(c){let b=`<label>Tell the AI what to change</label><textarea id="aiInst" placeholder="e.g. start where I first spot the prop; punchier captions"></textarea><button class="sm primary" style="margin-top:6px" onclick="aiEdit()" ${S.ai?'':'disabled'}>${S.ai?'Apply with AI':'Add API key'}</button>`;
   if(c.notes)b+=`<div class="sub" style="margin-top:8px;white-space:pre-wrap;max-height:110px;overflow:auto">${c.notes}</div>`;return sect("ai","AI assist",b);}
@@ -952,11 +952,11 @@ function connHelp(plat){if(plat==="youtube")return `<details><summary>How to get
   <li>Add the Redirect URI above exactly under Login Kit's redirect URIs.</li>
   <li>Add your own TikTok account as a target/sandbox user so you can upload to it.</li>
   <li>Paste the Client key + secret above → <b>Save keys</b> → <b>Connect</b>.</li></ol>
-  <div class="sub">The free path uploads to your <b>TikTok drafts</b> — open the app, add the caption, and tap Post (you can make it public there).</div></details>`;}
+  <div class="sub">The free path sends clips to your <b>TikTok inbox</b> — open the app, tap the notification to add a caption and post (you can make it public there).</div></details>`;}
 function renderQueue(){const host=$("#postqueue");if(!host)return;const q=(S.posting&&S.posting.queue)||[];
   if(!q.length){host.innerHTML='<div class="sub">Nothing queued yet.</div>';return;}
   host.innerHTML=q.map(it=>{const icon=it.platform==="youtube"?"▶️":"🎵",res=it.result||{};let sub=it.when?("⏰ "+fmtDate(it.when)):"now";
-    if(it.status==="uploaded")sub=it.platform==="youtube"?("Uploaded · "+(res.privacy==="public"?"Public":"set Public in Studio")):"In your TikTok drafts — finish in the app";
+    if(it.status==="uploaded")sub=it.platform==="youtube"?("Uploaded · "+(res.privacy==="public"?"Public":"set Public in Studio")):"In your TikTok inbox — tap the notification in the app to post";
     else if(it.status==="uploading")sub="uploading "+(it.progress||0)+"%";
     else if(it.status==="error")sub=it.error||"failed";
     const link=(it.status==="uploaded"&&res.url)?` · <a href="${res.url}" target="_blank" rel="noopener" style="color:var(--gold)">open</a>`:"";
@@ -997,7 +997,7 @@ function renderFinish(){const host=$("#finishbody");if(!host)return;
   else{
     h+=`<label class="pchk" style="margin-top:8px"><input type="checkbox" id="fYt" ${yt.connected?"checked":"disabled"}> ▶️ YouTube${yt.connected?(yt.channel?" · "+he(yt.channel):""):" — not connected"}</label>`;
     if(yt.connected)h+=`<div class="row" style="margin:0 0 2px 25px"><span class="sub">Visibility</span><select id="fPriv" style="width:auto"><option value="public">Public</option><option value="unlisted">Unlisted</option><option value="private">Private</option></select></div><div class="sub" style="margin:0 0 6px 25px;font-size:11px">Unverified projects upload Private regardless — publish in Studio.</div>`;
-    h+=`<label class="pchk"><input type="checkbox" id="fTt" ${tt.connected?"checked":"disabled"}> 🎵 TikTok${tt.connected?(tt.handle?" · "+he(tt.handle):""):" — not connected"} <span class="sub">→ drafts</span></label>`;
+    h+=`<label class="pchk"><input type="checkbox" id="fTt" ${tt.connected?"checked":"disabled"}> 🎵 TikTok${tt.connected?(tt.handle?" · "+he(tt.handle):""):" — not connected"} <span class="sub">→ inbox</span></label>`;
     h+=`<label class="pchk" style="margin-top:6px"><input type="checkbox" id="fSched" onchange="$('#fWhen').style.display=this.checked?'block':'none'"> 🕒 Schedule for later</label><input type="datetime-local" id="fWhen" style="display:none">`;
     h+=`<div class="row" style="margin-top:9px"><button class="sm primary" onclick="postApproved()" ${ap.length?"":"disabled"}>🚀 Post ${ap.length} approved</button></div>`;
     h+=`<div class="sub" style="margin-top:7px">Approved clips not downloaded yet will render first, then post automatically.</div>`;

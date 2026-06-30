@@ -229,7 +229,7 @@ Finished clips can be uploaded to YouTube Shorts and TikTok from the Studio.
   app is running.
 - **The semi-automated reality** (free/local constraint): an unverified YouTube API project force-locks
   uploads to **private** (you flip to public in Studio), and TikTok's free path lands clips in your
-  **drafts** (you add the caption and tap Post in-app). Fully hands-off public posting requires each
+  **inbox** (open the app, tap the notification to add a caption and post). Fully hands-off public posting requires each
   platform's audit, which needs a public website.
 
 ---

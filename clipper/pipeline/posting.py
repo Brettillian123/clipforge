@@ -15,8 +15,8 @@ public-posting AUDIT (which needs a public website + privacy policy), posting is
                privacyStatus we send. So clips upload to your channel and you flip them to
                Public (or schedule) in YouTube Studio. (An audited project honors the privacy
                we pass, making it fully hands-off.)
-  * TikTok   — the free path uploads to your TikTok DRAFTS (the "inbox" endpoint). You open the
-               TikTok app, add the caption, and tap Post (you can make it public there).
+  * TikTok   — the free path sends clips to your TikTok INBOX (the Creator's Draft endpoint). You open
+               the TikTok app, tap the inbox notification, add the caption, and Post (can be public there).
                Direct API publishing needs the audit.
 
 Everything here degrades gracefully: if the optional Google/requests libraries aren't installed,
@@ -407,7 +407,7 @@ class Poster:
                     raise RuntimeError(f"TikTok upload failed ({put.status_code}): {put.text[:200]}")
                 if progress_cb:
                     progress_cb((i + 1) / total)
-        return {"publish_id": publish_id, "where": "TikTok drafts"}
+        return {"publish_id": publish_id, "where": "TikTok inbox"}
 
     # =======================================================================
     # Queue + scheduler
