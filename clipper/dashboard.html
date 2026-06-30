@@ -319,6 +319,7 @@ function he(s){return (s||"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":
 function fmtGB(b){return b>=1073741824?(b/1073741824).toFixed(1)+" GB":(b/1048576).toFixed(0)+" MB";}
 function fmtDate(t){try{return new Date(t*1000).toLocaleString([],{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"});}catch(e){return "";}}
 async function showHome(){
+  try{$$("video").forEach(v=>v.pause());}catch(_){}   /* stop the clip preview's audio when leaving for Home */
   $("#home").style.display="block";$("#homejob").style.display="none";
   let lib;try{lib=await jget("/api/library");}catch(e){return;}
   const vl=$("#vodlist");vl.innerHTML="";
