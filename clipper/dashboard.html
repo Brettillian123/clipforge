@@ -305,7 +305,7 @@ async function load(){
   if(p.active===false){showHome();return;}          /* no project loaded -> Home picker */
   hideHome();
   S.clips=p.clips;S.ai=p.ai_available;S.vodDur=p.vod_duration;
-  loadPosting();                                   /* connection state for the per-clip post box */
+  await loadPosting();                             /* await: post box must know connection state before first render */
   $("#vodinfo").textContent=`${p.vod} · ${fmtClock(p.vod_duration)} · ${p.clips.length} clips`;
   $("#keybox").style.display=S.ai?"none":"flex";
   $("#aistat").textContent=S.ai?"AI ready":"AI off";$("#aistat").style.color=S.ai?"var(--ok)":"var(--muted)";
