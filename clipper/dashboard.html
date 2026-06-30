@@ -874,7 +874,8 @@ function postActions(c){const ps=S.posting||{},yt=ps.youtube||{},tt=ps.tiktok||{
   let b='<div class="postbox">';
   if(!anyConn){b+=`<div class="sub">Connect an account to post from here.</div><div class="row" style="margin-top:8px"><button class="sm primary" onclick="openConn()">🔗 Connect accounts</button></div></div>`;return b;}
   b+=`<label class="pchk"><input type="checkbox" id="pShorts" ${yt.connected?"checked":"disabled"}> ▶️ ${ytlab}</label>`;
-  if(yt.connected)b+=`<div class="row" style="margin:0 0 6px 25px"><span class="sub">Visibility</span><select id="pPriv" style="width:auto"><option value="public">Public</option><option value="unlisted">Unlisted</option><option value="private">Private</option></select></div>`;
+  if(yt.connected)b+=`<div class="row" style="margin:0 0 2px 25px"><span class="sub">Visibility</span><select id="pPriv" style="width:auto"><option value="public">Public</option><option value="unlisted">Unlisted</option><option value="private">Private</option></select></div>
+    <div class="sub" style="margin:0 0 6px 25px;font-size:11px;line-height:1.4">Unverified Google projects upload as <b>Private</b> regardless — publish in YouTube Studio. This setting only takes effect once your project passes Google's audit.</div>`;
   b+=`<label class="pchk"><input type="checkbox" id="pTiktok" ${tt.connected?"checked":"disabled"}> 🎵 ${ttlab} <span class="sub">→ drafts</span></label>`;
   b+=`<label class="pchk" style="margin-top:7px"><input type="checkbox" id="pSched" onchange="$('#pWhen').style.display=this.checked?'block':'none'"> 🕒 Schedule for later</label><input type="datetime-local" id="pWhen" style="display:none">`;
   b+=`<div class="row" style="margin-top:9px"><button class="sm primary" onclick="postClip()">🚀 Post / schedule</button><button class="sm" onclick="openConn()">⚙ Manage</button></div>`;
