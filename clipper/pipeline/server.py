@@ -235,6 +235,27 @@ class State:
             log(f"[server] could not delete {d}: {e}")
             return False
 
+    def delete_vod(self, p: str) -> bool:
+        """Send a library VOD to the Recycle Bin (recoverable). Safety: only a video FILE that lives
+        inside library_root — never a directory, never an arbitrary path off disk. Recordings are
+        valuable + irreplaceable, so we trash (recoverable) rather than hard-delete; clip/longform
+        folders made from it are left alone (delete those separately)."""
+        p = os.path.abspath(p or "")
+        if not (self._under_library(p) and os.path.isfile(p) and p.lower().endswith(self._VIDEO_EXT)):
+            return False
+        try:
+            try:
+                from send2trash import send2trash
+                send2trash(p)                          # -> OS Recycle Bin (restorable)
+                log(f"[server] VOD moved to Recycle Bin: {p}")
+            except ImportError:
+                os.remove(p)                           # fallback: permanent (send2trash not installed)
+                log(f"[server] VOD permanently deleted (send2trash unavailable): {p}")
+            return True
+        except OSError as e:  # noqa: BLE001
+            log(f"[server] could not delete VOD {p}: {e}")
+            return False
+
     def open_ready_folder(self) -> bool:
         """Open the 'Ready to post' folder (the clean finished clips) in Explorer."""
         if not self.active:
@@ -669,6 +690,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({"ok": True})
             if p == "/api/delete_job":
                 return self._json({"ok": STATE.delete_job(body.get("dir") or "")})
+            if p == "/api/delete_vod":
+                return self._json({"ok": STATE.delete_vod(body.get("path") or "")})
             if p == "/api/shutdown":
                 def _stop():
                     threading.Event().wait(0.3)

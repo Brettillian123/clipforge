@@ -320,7 +320,8 @@ async function showHome(){
     c.innerHTML=`<div class="cname">${he(v.name)}</div><div class="cmeta">${fmtGB(v.size)} · ${fmtDate(v.mtime)}</div>`;
     const w=document.createElement("button");w.textContent="👁 Watch";w.title="Preview this VOD before clipping";w.onclick=()=>reviewVod(v.path,v.name);c.appendChild(w);
     const b=document.createElement("button");b.className="primary";b.textContent="🎬 Make clips";b.onclick=()=>startJob(v.path,v.name);c.appendChild(b);
-    const lf=document.createElement("button");lf.textContent="🎞 Longform";lf.title="Make long-form 16:9 videos from this stream (separate from clips)";lf.onclick=()=>startLongform(v.path,v.name);c.appendChild(lf);vl.appendChild(c);});
+    const lf=document.createElement("button");lf.textContent="🎞 Longform";lf.title="Make long-form 16:9 videos from this stream (separate from clips)";lf.onclick=()=>startLongform(v.path,v.name);c.appendChild(lf);
+    const dv=document.createElement("button");dv.className="danger";dv.textContent="🗑";dv.title="Delete this video (moves it to the Recycle Bin)";dv.onclick=()=>delVod(v.path,v.name);c.appendChild(dv);vl.appendChild(c);});
   const jl=$("#joblist");jl.innerHTML="";
   if(!(lib.jobs&&lib.jobs.length))jl.innerHTML='<p class="muted">None yet — make clips from a video above.</p>';
   (lib.jobs||[]).forEach(j=>{const c=document.createElement("div");c.className="card";
@@ -372,6 +373,11 @@ async function delJob(dir,name){
   if(!confirm("Delete this clip set?\n\n"+(name||dir)+"\n\nThis permanently removes the rendered clips + project for this batch. Your original stream recording is NOT touched."))return;
   const r=await jpost("/api/delete_job",{dir});
   if(r&&r.ok){toast("Clip set deleted");showHome();}else{toast("Couldn’t delete that folder");}
+}
+async function delVod(path,name){
+  if(!confirm("Move this video to the Recycle Bin?\n\n"+(name||path)+"\n\nYou can restore it from the Recycle Bin if you change your mind. This removes the source recording only — clips you've already made are NOT touched."))return;
+  const r=await jpost("/api/delete_vod",{path});
+  if(r&&r.ok){toast("Moved to Recycle Bin");showHome();}else{toast("Couldn’t delete that video");}
 }
 
 /* ---------- clip list ---------- */

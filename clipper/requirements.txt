@@ -4,6 +4,7 @@ numpy>=2.0
 pillow>=10
 anthropic>=0.40        # AI titles / re-rank / natural-language edits (Studio)
 pywebview>=6.2         # opens the Studio as a native desktop window (Windows WebView2), not a browser
+send2trash>=1.8        # delete VODs to the Recycle Bin (recoverable) from the Home picker
 
 # Post to YouTube Shorts + TikTok from the Studio (optional — posting features only):
 requests>=2.31                 # TikTok Content Posting API (OAuth + chunked upload)

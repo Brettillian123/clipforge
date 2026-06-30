@@ -114,6 +114,9 @@ $env:PYTHONPATH = (Get-Location)
 4. **⬇ Download** a clip to render the final burned-in file, then **🚀 Post** it (see
    [Posting](#posting-to-youtube--tiktok)).
 
+Tidy up from Home anytime: **🗑** on a video moves it to the **Recycle Bin** (recoverable), and **🗑**
+on a clip batch deletes just those rendered clips — your source recording is left untouched.
+
 **From the command line** (one-off, no UI):
 
 ```powershell
