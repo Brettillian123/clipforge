@@ -1,0 +1,16 @@
+# Core
+faster-whisper>=1.2
+numpy>=2.0
+pillow>=10
+anthropic>=0.40        # AI titles / re-rank / natural-language edits (Studio)
+pywebview>=6.2         # opens the Studio as a native desktop window (Windows WebView2), not a browser
+
+# Post to YouTube Shorts + TikTok from the Studio (optional — posting features only):
+requests>=2.31                 # TikTok Content Posting API (OAuth + chunked upload)
+google-api-python-client>=2.0  # YouTube Data API v3 (resumable videos.insert + thumbnail)
+google-auth>=2.0               # YouTube OAuth credentials / token refresh
+google-auth-oauthlib>=1.0      # YouTube installed-app OAuth flow (loopback redirect)
+
+# NVIDIA GPU acceleration (installed by setup.ps1 only when an NVIDIA GPU is present):
+#   nvidia-cublas-cu12
+#   nvidia-cudnn-cu12

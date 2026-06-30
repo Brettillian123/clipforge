@@ -1,0 +1,53 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# ===== Secrets & local config =====
+# (these live in C:\Users\Brett\clipforge, OUTSIDE this folder — listed here as defense-in-depth)
+secret.json
+posting.json
+*.key
+*.pem
+.env
+.env.*
+.claude/
+
+# ===== Generated output (the app re-creates these) =====
+clips/
+longform/
+*.export.mp4
+*.srt
+
+# ===== Large media — source + rendered video, branding art, photos (not code) =====
+*.mp4
+*.mov
+*.mkv
+*.webm
+*.wav
+*.mp3
+*.png
+*.jpg
+*.jpeg
+*.ico
+source_files/
+archive/
+archive_v1_arcane/
+
+# ===== OBS / streaming config exports (may reveal local setup) =====
+*.scene-backup.json
+OBS_*.json
+
+# ===== Personal stream-ops notes (about this specific channel, not the tool) =====
+STREAM_CHEATSHEET.md
+STREAM_SETUP_HANDOFF.md
+StreamElements_FollowerGoal_Widget.md
+streaming_project_brief.md
+
+# ===== OS / editor cruft =====
+Thumbs.db
+.DS_Store
+*.swp

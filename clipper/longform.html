@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClipForge — Long-form</title>
+<style>
+  :root{--cream:#F6F3EC;--gold:#E7C58A;--gold2:#f0d6a6;--lav:#C3BBE6;--bg:#0d0b14;--panel:#161320;
+    --panel2:#211c30;--panel3:#2a2440;--line:#332d4a;--muted:#aaa2c4;--ok:#67d893;--bad:#ec7a72;--pending:#e0b76e;--blue:#86a8ff;}
+  *{box-sizing:border-box}
+  html{scrollbar-width:thin;scrollbar-color:#403a59 transparent}
+  ::-webkit-scrollbar{width:12px;height:12px}::-webkit-scrollbar-thumb{background:#403a59;border-radius:10px;border:3px solid var(--bg);background-clip:padding-box}::-webkit-scrollbar-thumb:hover{background:#5a517d}
+  html,body{margin:0;min-height:100%;background:var(--bg);color:var(--cream);font-family:Poppins,"Segoe UI",system-ui,sans-serif;font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+  a{color:var(--lav);text-decoration:none}a:hover{color:var(--gold)}
+  button{background:var(--panel2);border:1px solid var(--line);color:var(--cream);border-radius:9px;padding:8px 13px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;transition:.14s}
+  button:hover{border-color:var(--gold);background:var(--panel3)}button:active{transform:translateY(1px)}button:disabled{opacity:.45;cursor:not-allowed}
+  button.primary{background:linear-gradient(180deg,var(--gold2),var(--gold));color:#231a08;border-color:var(--gold);font-weight:800}
+  button.lav{background:var(--lav);color:#241d3a;border-color:var(--lav);font-weight:800}
+  header{height:54px;display:flex;align-items:center;gap:14px;padding:0 18px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#1a1526,#120f1a);position:sticky;top:0;z-index:5}
+  header h1{font-size:18px;margin:0;font-weight:800}header h1 .g{color:var(--gold)}
+  .sub{color:var(--muted);font-size:12px}.spacer{flex:1}
+  #wrap{max-width:920px;margin:0 auto;padding:20px 18px 60px}
+  .intro{color:var(--muted);font-size:13px;margin:6px 0 16px}
+  .card{border:1px solid var(--line);border-radius:14px;background:var(--panel);margin-bottom:16px;overflow:hidden}
+  .card h3{margin:0;padding:14px 18px 4px;font-size:16px;font-weight:800}
+  .card .meta{padding:0 18px;color:var(--muted);font-size:12px}
+  .card .meta b{color:var(--cream)}
+  .row{display:flex;gap:9px;align-items:center;flex-wrap:wrap;padding:12px 18px}
+  .bar{height:8px;border-radius:6px;background:#ffffff1a;overflow:hidden;flex:1;min-width:120px;display:none}
+  .bar.show{display:block}.fill{height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--lav));transition:width .3s}
+  .fill.indet{width:36%;animation:indet 1.1s ease-in-out infinite}@keyframes indet{0%{margin-left:-36%}100%{margin-left:100%}}
+  .pstat{font-size:12px;color:var(--muted);min-width:64px}
+  details{padding:0 18px 14px}summary{cursor:pointer;color:var(--lav);font-size:13px;font-weight:600;margin-bottom:6px}
+  .chap{display:flex;gap:10px;font-size:13px;padding:2px 0}.chap .t{color:var(--gold);font-variant-numeric:tabular-nums;min-width:56px}
+  video{width:100%;max-height:340px;background:#000;border-radius:0;display:block}
+  .badge{font-size:11px;padding:2px 8px;border-radius:10px;border:1px solid var(--line);color:var(--muted)}
+  .badge.done{color:var(--ok);border-color:var(--ok)}.badge.stale{color:var(--gold);border-color:var(--gold)}
+  .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#000e;border:1px solid var(--gold);padding:11px 18px;border-radius:11px;opacity:0;transition:.2s;pointer-events:none;z-index:50}
+  .toast.show{opacity:1}
+  .empty{color:var(--muted);text-align:center;margin-top:50px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Clip<span class="g">Forge</span> <span style="font-weight:400;color:var(--muted)">Long-form</span></h1>
+  <div class="sub" id="vodinfo"></div><div class="spacer"></div>
+  <a href="/" title="Back to the clip editor">← Clips</a>
+  <button id="planbtn" onclick="planNow()" class="primary">✨ Plan long-form videos</button>
+  <button onclick="load()" title="Re-fetch">↻ Reload</button>
+</header>
+<div id="wrap">
+  <div class="intro">Each card is a 16:9 session video ready for YouTube. <b>Render &amp; package</b> creates the
+    <code>.mp4</code> + subtitles + description (with chapters). Upload the video, attach the <code>.srt</code> as
+    subtitles, and paste the description. Renders are long — you can leave the page; they keep going.</div>
+  <div id="list"><div class="empty">Loading…</div></div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const fmt=s=>{s=Math.max(0,Math.round(s));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+":":"")+(h?String(m).padStart(2,"0"):m)+":"+String(x).padStart(2,"0");};
+async function jget(u){const r=await fetch(u);return r.json();}
+async function jpost(u,b){const r=await fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b||{})});return r.json();}
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),2600);}
+const S={segs:[],vod:"",renders:{}};
+
+async function load(){
+  let p;try{p=await jget("/api/longform");}catch(e){$("#list").innerHTML='<div class="empty">Server not reachable.</div>';return;}
+  S.segs=p.segments||[];S.vod=p.vod||"";
+  $("#vodinfo").textContent=S.vod?`${S.vod}`:"";
+  $("#planbtn").textContent=p.planned?"↻ Re-plan":"✨ Plan long-form videos";
+  render();
+}
+function render(){
+  const L=$("#list");
+  if(!S.segs.length){L.innerHTML='<div class="empty">No long-form videos planned yet.<br>Click <b>Plan long-form videos</b> to scan the stream into 20–90 min sessions.</div>';return;}
+  L.innerHTML="";
+  S.segs.forEach(s=>{
+    const d=document.createElement("div");d.className="card";d.dataset.idx=s.idx;
+    const rendering=!!S.renders[s.idx];
+    const badge=s.exists?'<span class="badge done">rendered</span>':'<span class="badge stale">not rendered</span>';
+    const base="seg"+String(s.idx).padStart(2,"0");   // server-controlled name from idx (not s.file)
+    d.innerHTML=`<h3>${esc(s.title||("Session "+s.idx))}</h3>
+      <div class="meta"><b>${(s.dur/60).toFixed(1)} min</b> · ${esc(s.game||"—")} · score ${s.score} · ${(s.chapters||[]).length} chapters · <code>${esc(s.file)}</code> ${badge}</div>
+      <div class="row">
+        <button class="primary act-render">${s.exists?"↻ Re-render":"⚙ Render & package"}</button>
+        <button class="lav act-dl" ${s.exists?"":"disabled"}>⬇ Video</button>
+        <button class="act-srt">⬇ Subtitles</button>
+        <button class="act-desc">📋 Copy description</button>
+        <div class="bar"><div class="fill"></div></div><div class="pstat"></div>
+      </div>
+      <details><summary>${(s.chapters||[]).length} chapters</summary>${(s.chapters||[]).map(c=>`<div class="chap"><span class="t">${fmt(c.t)}</span><span>${esc(c.label)}</span></div>`).join("")}</details>
+      <div class="vidwrap"></div>`;
+    d.querySelector(".act-render").onclick=()=>renderSeg(s.idx);
+    d.querySelector(".act-dl").onclick=()=>{if(s.exists)dl(`/lf/${base}.mp4?v=${s.version||0}`,base+".mp4");};
+    d.querySelector(".act-srt").onclick=()=>dl(`/lf/${base}.srt`,base+".srt");
+    d.querySelector(".act-desc").onclick=()=>copyDesc(base);
+    if(s.exists){const v=document.createElement("video");v.controls=true;v.preload="none";v.src=`/lf/${base}.mp4?v=${s.version||0}`;d.querySelector(".vidwrap").appendChild(v);}
+    L.appendChild(d);
+    if(rendering)paintCard(s.idx,S.renders[s.idx]);
+  });
+}
+function esc(t){return (t==null?"":String(t)).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
+function card(idx){return document.querySelector(`.card[data-idx="${idx}"]`);}
+function paintCard(idx,rec){const c=card(idx);if(!c)return;const bar=c.querySelector(".bar"),fill=c.querySelector(".fill"),st=c.querySelector(".pstat"),btn=c.querySelector(".act-render");
+  const el=((performance.now()-rec.t0)/1000)|0;
+  bar.classList.add("show");btn.disabled=true;
+  if(rec.status==="queued"){fill.className="fill indet";fill.style.removeProperty("width");st.textContent="queued · "+el+"s";}
+  else if(rec.progress!=null&&rec.progress>0){fill.className="fill";fill.style.width=rec.progress+"%";st.textContent=rec.progress+"% · "+el+"s";}
+  else{fill.className="fill indet";fill.style.removeProperty("width");st.textContent="working… "+el+"s";}}
+async function renderSeg(idx){
+  if(S.renders[idx])return;
+  const r=await jpost(`/api/longform/${idx}/render`,{});if(!r.job){toast("Could not start render");return;}
+  const rec={job:r.job,status:"queued",progress:null,t0:performance.now(),tick:null,poll:null};S.renders[idx]=rec;
+  paintCard(idx,rec);
+  rec.tick=setInterval(()=>{if(S.renders[idx]===rec)paintCard(idx,rec);},500);
+  rec.poll=setInterval(async()=>{
+    if(S.renders[idx]!==rec){clearInterval(rec.poll);return;}
+    let s;try{s=await jget(`/api/job/${rec.job}`);}catch(e){return;}
+    rec.status=s.status;rec.progress=(typeof s.progress==="number")?s.progress:null;
+    if(s.status==="done"||s.status==="error"||s.status==="cancelled"){
+      clearInterval(rec.poll);clearInterval(rec.tick);delete S.renders[idx];
+      if(s.status==="done")toast(`seg${String(idx).padStart(2,"0")} rendered ✓`);
+      else if(s.status==="error")toast("Render failed: "+(s.error||""));
+      await load();
+    }else paintCard(idx,rec);
+  },700);
+}
+async function copyDesc(base){
+  try{const r=await fetch(`/lf/${base}.description.txt`);if(!r.ok)throw 0;const t=await r.text();
+    await navigator.clipboard.writeText(t);toast("Description copied — paste into YouTube");}
+  catch(e){toast("Plan first to generate the description");}
+}
+function dl(url,name){const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();}
+async function planNow(){const b=$("#planbtn");b.disabled=true;b.textContent="✨ Planning…";
+  try{const r=await jpost("/api/longform/plan",{});if(r.error){toast("Plan failed: "+r.error);}else{toast(`Planned ${ (r.segments||[]).length } videos`);}}
+  catch(e){toast("Plan failed");}
+  b.disabled=false;await load();}
+load();
+</script>
+</body>
+</html>
