@@ -50,7 +50,7 @@ A run is orchestrated by **`jobs.py`** (`make_clips`, `make_longform`), which is
 | `transcribe.py` | Backend selection + caching; word-timestamped transcript. |
 | `transcribe_whispercpp.py` | whisper.cpp (Vulkan) backend for AMD GPUs. |
 | `detect.py` | Score every second on six signals, snap to pauses, dedupe, return ranked candidates. |
-| `rerank.py` | Optional Claude pass: re-rank the shortlist + write per-platform copy; `write_titles()` for an existing set. Prompts are built from `Config` (persona/handle). |
+| `rerank.py` | Optional Claude pass: re-rank the shortlist + write per-platform copy; `write_titles()` for an existing set. Prompts are built from `Config` (persona/handle) and inject `trends.json` (current TikTok/YT formats) when present. |
 | `ai_edit.py` | Natural-language clip edits + AI caption cleanup. |
 | `meta.py` | Heuristic (no-API) titles/captions/hashtags + game guessing. |
 | `project.py` | The `ClipSpec` dataclass, `build_project()`, the titlecard element, and project.json load/save. |
@@ -260,6 +260,7 @@ the clip renderer but is otherwise independent.
   ├─ fonts/            Poppins TTFs copied for libass
   ├─ emoji/            Twemoji PNGs for the editor + renderer
   ├─ config.json       your overrides (handle, persona, …)   ← optional
+  ├─ trends.json       your own "what's hot now" list          ← optional (else the bundled seed)
   ├─ secret.json       Anthropic API key                      ← local only
   └─ posting.json      YouTube/TikTok tokens + upload queue    ← local only
   ```

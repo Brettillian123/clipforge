@@ -1,0 +1,28 @@
+{
+  "updated": "2026-06-30",
+  "notes": "Loose, researched guide to what's trending on short-form right now. The AI uses a phrase ONLY when it genuinely fits the clip, never forced. Refresh by asking Claude Code to 'refresh ClipForge trends', or drop your own list at <clipforge-home>/trends.json (same shape).",
+  "general": [
+    "absolute cinema - for a genuinely insane or beautiful play/clutch",
+    "it's giving ___ - name the vibe, e.g. 'it's giving rage quit'",
+    "caught in 4k - when you or chat get exposed doing something",
+    "lost/gained aura - coolness points after a clutch or a fail",
+    "say wallahi - mock-disbelief that this actually happened",
+    "in my ___ era - e.g. 'in my villain era' after griefing chat",
+    "POV: ___ - frame the clip from your or chat's point of view",
+    "tell me why ___ - incredulous setup for an absurd moment",
+    "the lion doesn't concern himself with ___ - flexing not caring",
+    "nah this is crazy / not me ___ - dry, self-aware framing"
+  ],
+  "tiktok": [
+    "open with a punchy first-person reaction; dry humor beats polish",
+    "end on a comment-bait question (e.g. 'would you have hit this?')",
+    "relatable framing ('every <game> player knows this pain')",
+    "keep it short and high-energy; one trend phrase max per caption"
+  ],
+  "youtube": [
+    "front-load the game name + the specific outcome for search",
+    "narrative hooks: 'this should not have worked', 'I can't believe this happened', 'watch this impossible ___'",
+    "name the exact searchable moment (e.g. 'Tarkov 1v3 extract camp')",
+    "ranking / tier-list framing for multi-clip or list videos"
+  ]
+}

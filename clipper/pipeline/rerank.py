@@ -74,8 +74,51 @@ def _platforms(cfg) -> str:
     )
 
 
+def _trends(cfg) -> str:
+    """Optional 'what's trending now' block for the system prompt, read from a local trends.json
+    (refreshed by a research pass). Looks at cfg.trends_path, then <LOCAL_ROOT>/trends.json, then the
+    seed bundled next to this package. Returns '' if none found / empty / unreadable, so generation
+    behaves exactly as before when there is no list."""
+    import time
+    for p in ((getattr(cfg, "trends_path", "") or "").strip(),
+              os.path.join(config.LOCAL_ROOT, "trends.json"),
+              os.path.join(os.path.dirname(__file__), "trends.json")):
+        if p and os.path.isfile(p):
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    d = json.load(f)
+                break
+            except (OSError, ValueError):
+                continue
+    else:
+        return ""
+    if not isinstance(d, dict):
+        return ""
+    pick = lambda k: [str(x).strip() for x in (d.get(k) or []) if str(x).strip()][:12]
+    gen, tt, yt = pick("general"), pick("tiktok"), pick("youtube")
+    if not (gen or tt or yt):
+        return ""
+    updated = str(d.get("updated") or "").strip()
+    stale = ""
+    try:
+        if updated and (time.time() - time.mktime(time.strptime(updated, "%Y-%m-%d"))) / 86400.0 > 30:
+            stale = " (may be stale; treat as a loose guide)"
+    except ValueError:
+        pass
+    out = ["CURRENTLY TRENDING" + (f" as of {updated}" if updated else "") + stale +
+           ". These formats/phrases are doing numbers on short-form right now. Use any that GENUINELY "
+           "fit this clip; never force one in, and use at most one trend phrase per caption."]
+    if gen:
+        out.append("Both platforms: " + "; ".join(gen) + ".")
+    if tt:
+        out.append("TikTok-leaning: " + "; ".join(tt) + ".")
+    if yt:
+        out.append("YouTube Shorts-leaning: " + "; ".join(yt) + ".")
+    return "\n".join(out)
+
+
 def _system(cfg) -> str:
-    return (
+    base = (
         f"You are a short-form clip editor for {_channel_descriptor(cfg)} "
         "who streams a rotating variety of games (it changes often) to Twitch, and posts clips to "
         "TikTok and YouTube Shorts. You are given candidate moments auto-detected from a VOD (transcript "
@@ -94,6 +137,8 @@ def _system(cfg) -> str:
         "no matter how much talking there is. Re-rank by viral potential, not by the input order.\n\n"
         + _voice() + "\n\n" + _platforms(cfg)
     )
+    tr = _trends(cfg)
+    return base + ("\n\n" + tr if tr else "")
 
 
 def _platform_meta(cfg, item: dict) -> dict:

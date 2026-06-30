@@ -160,6 +160,11 @@ state is `project.json`. See **[docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md)**
 - **Personalise without editing code:** drop a `config.json` in your ClipForge home
   (`%USERPROFILE%\clipforge\config.json`) to set `wm_handle`, `channel_name`, `channel_persona`, or any
   other `Config` field. See the [repo README](../README.md#make-it-yours).
+- **Trend-aware copy:** the AI pass reads a `trends.json` of currently-trending TikTok / YouTube Shorts
+  formats and works any that genuinely fit a clip into the caption (never forced). A seed ships in
+  `pipeline/trends.json`; refresh it by asking Claude Code to *"refresh ClipForge trends"*, or drop your
+  own at `%USERPROFILE%\clipforge\trends.json` (or point `trends_path` at it). Missing file = it just
+  behaves as before.
 - **All defaults** live in `pipeline/config.py` (geometry, caption defaults, detection weights, chat
   region, AI model, encoder). Detection lexicons are in `pipeline/detect.py`.
 - **Output per VOD:** `"<vod> - clips\"` → `clipNN.mp4` (editable base), `Ready to post\clipNN.mp4`

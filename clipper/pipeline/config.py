@@ -232,6 +232,10 @@ class Config:
     # ---- dashboard ----
     dash_port: int = 8765
 
+    # ---- trends: optional "what's hot now" list injected into the caption prompt (see rerank._trends).
+    # Blank falls back to <LOCAL_ROOT>/trends.json, then the seed bundled with the package. ----
+    trends_path: str = ""
+
     # ---- LLM re-rank (optional, --ai) ----
     ai_enabled: bool = False
     ai_model: str = "claude-sonnet-4-6"  # strong + cost-effective for titles/edits
