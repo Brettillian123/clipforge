@@ -9,7 +9,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pipeline import config, jobs, server  # noqa: E402
 
-LIBRARY = r"C:\Users\Brett\Videos"
+LIBRARY = os.environ.get("CLIPFORGE_LIBRARY") or os.path.join(os.path.expanduser("~"), "Videos")
 
 arg = sys.argv[1] if len(sys.argv) > 1 else None
 library_root, active_dir = LIBRARY, None

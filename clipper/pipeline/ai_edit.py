@@ -13,8 +13,7 @@ from . import config, util
 from .util import log
 
 SYSTEM = (
-    "You edit short-form vertical clips for a comedic gaming streamer "
-    "(TheEnchantingChicken; Twitch handle theenchantingchicken). You are given one "
+    "You edit short-form vertical clips for a gaming streamer. You are given one "
     "clip's current spec plus the surrounding VOD transcript with ABSOLUTE timestamps "
     "(seconds). Apply the user's instruction by returning ONLY the spec fields that "
     "change, as JSON. Times are absolute VOD seconds. Keep clips self-contained with a "

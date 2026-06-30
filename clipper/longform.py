@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pipeline import config, longform, transcribe, util  # noqa: E402
 from pipeline.util import log  # noqa: E402
 
-DEFAULT_VOD = r"C:\Users\Brett\OneDrive\Documents\StreamingProject\Stream1.mp4"
+DEFAULT_VOD = os.path.join(os.path.expanduser("~"), "Videos", "Stream1.mp4")  # fallback; pass a VOD path instead
 
 
 def main() -> int:

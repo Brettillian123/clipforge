@@ -11,7 +11,9 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pipeline import config, jobs, server  # noqa: E402
 
-LIBRARY = r"C:\Users\Brett\Videos"          # where the Home picker looks for VODs + clip batches
+# where the Home picker looks for VODs + clip batches. Defaults to your Videos folder;
+# override with the CLIPFORGE_LIBRARY env var (e.g. a dedicated recordings drive).
+LIBRARY = os.environ.get("CLIPFORGE_LIBRARY") or os.path.join(os.path.expanduser("~"), "Videos")
 
 
 def _setup_logging():

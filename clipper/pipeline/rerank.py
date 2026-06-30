@@ -24,28 +24,41 @@ def _extract_json(text: str) -> dict:
         raise RuntimeError("Claude returned unparseable output; please try again.") from e
 
 
-SYSTEM = (
-    "You are a short-form clip editor for a comedic gaming streamer (TheEnchantingChicken) "
-    "who streams a rotating variety of games (recently League of Legends, Escape from Tarkov, "
-    "Meccha Chameleon, Roblox — but it changes) to Twitch, and posts clips to TikTok and YouTube "
-    "Shorts. You are given candidate moments auto-detected from a VOD (transcript snippet, component "
-    "scores, timestamps, profanity flag). ALWAYS infer the ACTUAL game from each clip's transcript "
-    "and keywords (e.g. champion names, 'recall', 'minion', 'rooted' => League of Legends; 'raid', "
-    "'scav', 'extract' => Tarkov) and use that specific, correct game in the title and hashtags — "
-    "NEVER assume a default game or tag a game the transcript doesn't support. Judge each clip on "
-    "real viral potential for vertical short-form: a self-contained story, a hook in the first 3 "
-    "seconds, and a clear payoff (a laugh, a clutch, a fail, a hot take). Reward genuine comedy and "
-    "surprise; do NOT reward mere loudness. "
-    "CRITICAL: strongly PREFER moments of ACTUAL GAMEPLAY/action (a play, a kill, a clutch, a fail, a "
-    "scare, an in-game interaction) over downtime. AVOID — and score low — pre-game lobbies, menus, "
-    "queues, loading, and idle social chit-chat with no game stakes (tells: 'are you ready', 'who's "
-    "queuing', 'waiting for', 'one more game', talking about unrelated real-life stuff). If a candidate "
-    "is just the streamer chatting in a lobby with nothing happening in the game, it is NOT a good clip "
-    "no matter how much talking there is. Re-rank by viral potential, not by the input order."
-)
+def _channel_descriptor(cfg) -> str:
+    """'a comedic gaming streamer (Name)' — persona + optional name, both from config."""
+    persona = (getattr(cfg, "channel_persona", "") or "a gaming streamer").strip()
+    name = (getattr(cfg, "channel_name", "") or "").strip()
+    return f"{persona} ({name})" if name else persona
 
 
-def _user_payload(cands: list, count: int) -> str:
+def _cta(cfg) -> str:
+    """The caption call-to-action; uses your @handle when set, else a neutral fallback."""
+    h = (getattr(cfg, "wm_handle", "") or "").strip()
+    return f"live on Twitch @{h}" if h else "follow for more"
+
+
+def _system(cfg) -> str:
+    return (
+        f"You are a short-form clip editor for {_channel_descriptor(cfg)} "
+        "who streams a rotating variety of games (it changes often) to Twitch, and posts clips to "
+        "TikTok and YouTube Shorts. You are given candidate moments auto-detected from a VOD (transcript "
+        "snippet, component scores, timestamps, profanity flag). ALWAYS infer the ACTUAL game from each "
+        "clip's transcript and keywords (e.g. champion names, 'recall', 'minion', 'rooted' => League of "
+        "Legends; 'raid', 'scav', 'extract' => Tarkov) and use that specific, correct game in the title "
+        "and hashtags — NEVER assume a default game or tag a game the transcript doesn't support. Judge "
+        "each clip on real viral potential for vertical short-form: a self-contained story, a hook in the "
+        "first 3 seconds, and a clear payoff (a laugh, a clutch, a fail, a hot take). Reward genuine comedy "
+        "and surprise; do NOT reward mere loudness. "
+        "CRITICAL: strongly PREFER moments of ACTUAL GAMEPLAY/action (a play, a kill, a clutch, a fail, a "
+        "scare, an in-game interaction) over downtime. AVOID — and score low — pre-game lobbies, menus, "
+        "queues, loading, and idle social chit-chat with no game stakes (tells: 'are you ready', 'who's "
+        "queuing', 'waiting for', 'one more game', talking about unrelated real-life stuff). If a candidate "
+        "is just the streamer chatting in a lobby with nothing happening in the game, it is NOT a good clip "
+        "no matter how much talking there is. Re-rank by viral potential, not by the input order."
+    )
+
+
+def _user_payload(cfg: config.Config, cands: list, count: int) -> str:
     items = []
     for i, c in enumerate(cands):
         items.append({
@@ -61,7 +74,7 @@ def _user_payload(cands: list, count: int) -> str:
             "id": "the candidate id you are selecting",
             "llm_score": "0-100 your viral-potential score",
             "title": "<=60 chars, punchy, front-load the payoff/keyword (works as a YouTube Shorts title)",
-            "caption": "1 short line for TikTok; end with: live on Twitch @theenchantingchicken",
+            "caption": f"1 short line for TikTok; end with: {_cta(cfg)}",
             "hashtags": "4-5 tags; mix 1-2 broad + 2-3 niche/game-specific; include #Shorts for youtube",
             "trim_start_delta_s": "optional, -3..3, nudge start (will be re-validated against pauses)",
             "trim_end_delta_s": "optional, -3..3",
@@ -87,12 +100,12 @@ def rerank(cfg: config.Config, cands: list, count: int) -> list:
         raise RuntimeError("anthropic not installed. Run: pip install anthropic") from e
 
     client = anthropic.Anthropic(api_key=key)
-    payload = _user_payload(cands, count)
+    payload = _user_payload(cfg, cands, count)
     log(f"[rerank] asking {cfg.ai_model} to judge {len(cands)} candidates ...")
     msg = client.messages.create(
         model=cfg.ai_model,
         max_tokens=4096,
-        system=SYSTEM,
+        system=_system(cfg),
         messages=[{"role": "user", "content": payload}],
     )
     text = "".join(b.text for b in msg.content if getattr(b, "type", "") == "text")
@@ -137,9 +150,9 @@ def write_titles(cfg: config.Config, clips: list) -> dict:
               "profanity": c.get("profanity", False), "transcript": (c.get("transcript", "") or "")[:700]}
              for c in clips]
     payload = {
-        "task": "For EACH clip id, write short-form metadata for a comedic gaming streamer "
-                "(TheEnchantingChicken). Title <=60 chars, punchy, front-load the payoff; 1-2 emoji ok. "
-                "Caption: one line, end with 'live on Twitch @theenchantingchicken'. "
+        "task": f"For EACH clip id, write short-form metadata for {_channel_descriptor(cfg)}. "
+                "Title <=60 chars, punchy, front-load the payoff; 1-2 emoji ok. "
+                f"Caption: one line, end with '{_cta(cfg)}'. "
                 "hashtags: 3-4 as a JSON ARRAY of strings (e.g. ['#Roblox','#Shorts']), mix broad + niche/game.",
         "clips": items,
         "output": "Return ONLY JSON: {\"clips\":[{\"id\":\"clipNN\",\"title\":\"...\",\"caption\":\"...\","
@@ -147,7 +160,7 @@ def write_titles(cfg: config.Config, clips: list) -> dict:
     }
     client = anthropic.Anthropic(api_key=key)
     log(f"[titles] writing metadata for {len(items)} clips with {cfg.ai_model} ...")
-    msg = client.messages.create(model=cfg.ai_model, max_tokens=3000, system=SYSTEM,
+    msg = client.messages.create(model=cfg.ai_model, max_tokens=3000, system=_system(cfg),
                                  messages=[{"role": "user", "content": json.dumps(payload, ensure_ascii=False)}])
     text = "".join(b.text for b in msg.content if getattr(b, "type", "") == "text")
     data = _extract_json(text)

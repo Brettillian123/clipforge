@@ -1,7 +1,7 @@
 """Download the Twemoji (openly-licensed) PNG set used by the dashboard emoji picker.
 
 Run once: python tools/fetch_emoji.py
-Saves 72x72 PNGs to C:\\Users\\Brett\\clipforge\\emoji\\<codepoint>.png
+Saves 72x72 PNGs to <clipforge-home>/emoji/<codepoint>.png (see config.LOCAL_ROOT).
 Keep EMOJIS in sync with the EMOJIS list in dashboard.html.
 """
 import os
@@ -10,7 +10,7 @@ import urllib.request
 EMOJIS = ["😂", "🤣", "💀", "😭", "😱", "😳", "😬", "😎", "🥶", "🤯", "😤", "🤔", "👀", "🙌",
           "👏", "👇", "👉", "👆", "🔥", "💯", "✨", "⭐", "💥", "🏆", "🎯", "✅", "❌", "⚠️",
           "❤️", "🎮", "🐔", "🧠", "👑", "🚨", "😅", "🤡"]
-OUT = r"C:\Users\Brett\clipforge\emoji"
+OUT = os.path.join(os.environ.get("CLIPFORGE_HOME") or os.path.join(os.path.expanduser("~"), "clipforge"), "emoji")
 BASE = "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/"
 
 

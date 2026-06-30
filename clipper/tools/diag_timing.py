@@ -3,14 +3,14 @@ import os
 import subprocess
 import sys
 
-sys.path.insert(0, r"C:\Users\Brett\OneDrive\Documents\StreamingProject\clipper")
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # the clipper/ dir
 from pipeline import config, util
 from pipeline.transcribe import _resolve_device
 
 cfg = config.load_config()
-sl = r"C:\Users\Brett\clipforge\work\diag_slice.wav"
+sl = os.path.join(config.WORK_DIR, "diag_slice.wav")
 subprocess.run([util.ffmpeg(), "-y", "-hide_banner", "-loglevel", "error", "-ss", "11171", "-t", "40",
-                "-i", r"C:\Users\Brett\clipforge\work\stream1_16k.wav", "-c", "copy", sl], check=True)
+                "-i", os.path.join(config.WORK_DIR, "stream1_16k.wav"), "-c", "copy", sl], check=True)
 
 util.add_cuda_dll_dirs()
 try:

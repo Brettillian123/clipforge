@@ -10,16 +10,18 @@ Color note:
 """
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass, field, replace
 
 
 # --------------------------------------------------------------------------- #
-# Paths. Code lives in OneDrive (syncs to the Desktop). Heavy/intermediate
-# files (venv, wav, model cache, rendered clips) stay LOCAL to avoid OneDrive
-# churn. Output clips default to a folder next to the VOD (set at runtime).
+# Paths. The app keeps heavy/intermediate files (venv, wav, model cache,
+# rendered clips) in a per-user LOCAL_ROOT, by default `<your-home>/clipforge`.
+# Override the location with the CLIPFORGE_HOME environment variable.
+# Output clips default to a folder next to the VOD (set at runtime).
 # --------------------------------------------------------------------------- #
-LOCAL_ROOT = r"C:\Users\Brett\clipforge"
+LOCAL_ROOT = os.environ.get("CLIPFORGE_HOME") or os.path.join(os.path.expanduser("~"), "clipforge")
 WORK_DIR = os.path.join(LOCAL_ROOT, "work")        # wav, transcript cache, frames, per-clip ass
 FONTS_DIR = os.path.join(LOCAL_ROOT, "fonts")      # Poppins TTFs copied here for libass
 MODEL_DIR = os.path.join(LOCAL_ROOT, "models")     # faster-whisper / HF + ggml model cache
@@ -27,10 +29,11 @@ WCPP_DIR = os.path.join(LOCAL_ROOT, "whispercpp")   # prebuilt whisper.cpp (Vulk
 ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets")  # watermark.png
 
 # ffmpeg/ffprobe: resolved in util.py (PATH first, then this WinGet fallback).
-FFMPEG_FALLBACK = (
-    r"C:\Users\Brett\AppData\Local\Microsoft\WinGet\Packages"
-    r"\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe"
-    r"\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe"
+_LOCALAPPDATA = os.environ.get("LOCALAPPDATA") or os.path.join(os.path.expanduser("~"), "AppData", "Local")
+FFMPEG_FALLBACK = os.path.join(
+    _LOCALAPPDATA, "Microsoft", "WinGet", "Packages",
+    "Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe",
+    "ffmpeg-8.1.1-full_build", "bin", "ffmpeg.exe",
 )
 FFPROBE_FALLBACK = FFMPEG_FALLBACK.replace("ffmpeg.exe", "ffprobe.exe")
 
@@ -142,11 +145,17 @@ class Config:
     cap_pop: bool = False                # scale-pop the active word (off by default to avoid line re-centering jitter)
     cap_pop_scale: int = 110
 
+    # ---- channel identity (make it yours: set these in <LOCAL_ROOT>/config.json — see README) ----
+    # Left blank by default so the public defaults aren't tied to one creator. The watermark, caption
+    # CTA, and AI copywriter all read these; empty values fall back to neutral phrasing.
+    channel_name: str = ""               # display/persona name used in AI prompts, e.g. "AwesomeStreamer"
+    channel_persona: str = "a comedic gaming streamer"   # short persona for the AI copywriter
+
     # ---- watermark (persistent Twitch follow tag) ----
     # Upper-RIGHT by default: TikTok's top-left/center has the search + tab UI; the right rail
     # (like/comment/share) is lower, so the upper-right corner stays clear. wm_align "right" makes
     # wm_x the margin from the RIGHT edge; "left" makes it the left margin. wm_y is the top inset.
-    wm_handle: str = "theenchantingchicken"
+    wm_handle: str = ""                  # your Twitch @handle (set in config.json); blank = icon + CTA only
     wm_cta: str = "FOLLOW ON TWITCH"
     wm_align: str = "right"              # "right" | "left"
     wm_x: int = 36                       # margin from the aligned edge
@@ -253,5 +262,21 @@ class Config:
 
 
 def load_config() -> Config:
-    """Return defaults. (Hook: merge a config.json here later if desired.)"""
-    return Config()
+    """Defaults, with optional per-user overrides merged from ``<LOCAL_ROOT>/config.json``.
+
+    Drop a small JSON file there to make ClipForge yours without touching code — set your
+    handle/persona or tweak any Config field. Unknown keys are ignored. Example:
+        {"wm_handle": "yourhandle", "channel_name": "YourName", "use_nvenc": false}
+    """
+    cfg = Config()
+    path = os.path.join(LOCAL_ROOT, "config.json")
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+        if isinstance(data, dict):
+            valid = {k: v for k, v in data.items() if hasattr(cfg, k) and not k.startswith("_")}
+            if valid:
+                cfg = cfg.with_overrides(**valid)
+    except (OSError, ValueError):
+        pass                                  # no/invalid override file -> plain defaults
+    return cfg

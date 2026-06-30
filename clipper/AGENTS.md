@@ -12,7 +12,7 @@ per clip. Everything is pure data: pixel coordinates, hex colors, seconds.
 ## How to run things
 Use the project's venv python, from the `clipper` directory:
 ```
-& C:\Users\Brett\clipforge\.venv\Scripts\python.exe cfedit.py <command> ...
+& "$env:USERPROFILE\clipforge\.venv\Scripts\python.exe" cfedit.py <command> ...
 ```
 `cfedit.py` auto-detects the running dashboard (http://127.0.0.1:8765): if it's up, edits go through
 it so the dashboard updates live (user clicks **↻ Reload**); if it's down, it edits project.json and
@@ -55,7 +55,7 @@ Keep edits to pure numbers; don't hand-edit rendered files. See `README.md` for 
 ## Long-form (separate feature)
 ClipForge also turns the VOD into **20–90 min 16:9 YouTube videos** (chaptered, captioned,
 titled) — see `LONGFORM_PLAN.md`. It's independent of the vertical-clip pipeline above.
-- **CLI:** `& C:\Users\Brett\clipforge\.venv\Scripts\python.exe longform.py "<vod>"`
+- **CLI:** `& "$env:USERPROFILE\clipforge\.venv\Scripts\python.exe" longform.py "<vod>"`
   (`--plan-only` for a fast plan + review sheet, `--count N`, `--height 720`, `--no-watermark`).
 - **Dashboard:** the **🎬 Long-form** button (header) opens `/longform` — Plan → per-video
   Render & package (live progress) → Download + Copy description.

@@ -12,7 +12,7 @@ import sys
 
 from pipeline import config, longform, transcribe, util
 
-ROOT = r"C:\Users\Brett\OneDrive\Documents\StreamingProject"
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # StreamingProject/
 proj = json.load(open(os.path.join(ROOT, "clips", "project.json"), encoding="utf-8"))
 VOD = proj["vod"]
 cfg = config.load_config()

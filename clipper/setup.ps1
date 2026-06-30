@@ -1,8 +1,9 @@
-# ClipForge setup - run once on the machine you'll clip on (prefer the NVIDIA laptop).
-# Creates a LOCAL venv + work dirs (kept out of OneDrive), installs deps, copies
-# the Poppins fonts for libass, and pre-generates the watermark.
+# ClipForge setup - run once on the machine you'll clip on (an NVIDIA GPU is fastest).
+# Creates a LOCAL venv + work dirs, installs deps, copies the Poppins fonts for libass,
+# and pre-generates the watermark. The local home defaults to %USERPROFILE%\clipforge;
+# override with the CLIPFORGE_HOME environment variable.
 $ErrorActionPreference = "Stop"
-$root = "C:\Users\Brett\clipforge"
+$root = if ($env:CLIPFORGE_HOME) { $env:CLIPFORGE_HOME } else { Join-Path $env:USERPROFILE "clipforge" }
 $code = $PSScriptRoot
 
 Write-Host "ClipForge setup -> $root"
@@ -42,5 +43,7 @@ $env:PYTHONPATH = $code
 # 5) download the Twemoji emoji set (openly licensed) used by the editor + renderer
 & $py "$code\tools\fetch_emoji.py"
 
-Write-Host "`nDone. Run a clip job with:"
-Write-Host "  `$env:PYTHONPATH='$code'; & '$py' '$code\clip.py' 'C:\Users\Brett\OneDrive\Documents\StreamingProject\Stream1.mp4'"
+Write-Host "`nDone. Launch the Studio with:"
+Write-Host "  `$env:PYTHONPATH='$code'; & '$py' '$code\dashboard.py'"
+Write-Host "Or run a one-off clip job from the CLI:"
+Write-Host "  `$env:PYTHONPATH='$code'; & '$py' '$code\clip.py' '<path\to\your-vod.mp4>'"

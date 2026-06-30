@@ -71,8 +71,9 @@ def local_metadata(cfg: config.Config, cand, platform: str) -> dict:
     hook = HOOKS[_dominant(cand.components)][idx]
     title = hook if not game else f"{hook} ({game})"
     title = title[:60]
-    handle = cfg.wm_handle
-    caption = f"{hook.capitalize()} | live on Twitch @{handle}"
+    handle = (cfg.wm_handle or "").strip()
+    cta = f" | live on Twitch @{handle}" if handle else ""
+    caption = f"{hook.capitalize()}{cta}"
     return {
         "title": title,
         "caption": caption,

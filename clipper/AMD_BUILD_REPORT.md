@@ -20,10 +20,10 @@ Close the console window (or `Ctrl+C`) to stop. New clips land in a `<video name
 to the video. The CLI still works if you prefer it:
 
 ```powershell
-$env:PYTHONPATH="C:\Users\Brett\OneDrive\Documents\StreamingProject\clipper"
-$py = "C:\Users\Brett\clipforge\.venv\Scripts\python.exe"
-& $py "$env:PYTHONPATH\clip.py" "C:\Users\Brett\Videos\<your-vod>.mp4"   # batch from the CLI
-& $py "$env:PYTHONPATH\dashboard.py"                                     # open the Studio (Home picker)
+$env:PYTHONPATH = "<path-to-repo>\clipper"
+$py = "$env:USERPROFILE\clipforge\.venv\Scripts\python.exe"
+& $py "$env:PYTHONPATH\clip.py" "$env:USERPROFILE\Videos\<your-vod>.mp4"   # batch from the CLI
+& $py "$env:PYTHONPATH\dashboard.py"                                       # open the Studio (Home picker)
 ```
 
 ClipForge **auto-detects** this AMD desktop and routes transcription through the whisper.cpp (Vulkan)
@@ -38,11 +38,11 @@ backend.
 ### Where things live (all local, kept out of OneDrive)
 | What | Path |
 |---|---|
-| Python venv | `C:\Users\Brett\clipforge\.venv` |
-| whisper.cpp Vulkan binary | `C:\Users\Brett\clipforge\whispercpp\` (`whisper-cli.exe` + DLLs) |
-| Models | `C:\Users\Brett\clipforge\models\` (`ggml-large-v3-turbo.bin` default) |
+| Python venv | `%USERPROFILE%\clipforge\.venv` |
+| whisper.cpp Vulkan binary | `%USERPROFILE%\clipforge\whispercpp\` (`whisper-cli.exe` + DLLs) |
+| Models | `%USERPROFILE%\clipforge\models\` (`ggml-large-v3-turbo.bin` default) |
 | ffmpeg | winget Gyan.FFmpeg 8.1.1 (AMF + libass) |
-| Work cache | `C:\Users\Brett\clipforge\work\` |
+| Work cache | `%USERPROFILE%\clipforge\work\` |
 
 ---
 

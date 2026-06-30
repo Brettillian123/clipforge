@@ -7,7 +7,7 @@ venv/
 env/
 
 # ===== Secrets & local config =====
-# (these live in C:\Users\Brett\clipforge, OUTSIDE this folder — listed here as defense-in-depth)
+# (these live under your ClipForge home, e.g. %USERPROFILE%\clipforge, OUTSIDE this folder — defense-in-depth)
 secret.json
 posting.json
 *.key

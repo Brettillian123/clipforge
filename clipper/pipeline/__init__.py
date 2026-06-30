@@ -1,4 +1,4 @@
-"""ClipForge - VOD-to-shorts pipeline for TheEnchantingChicken.
+"""ClipForge - a free, local VOD-to-shorts pipeline for Twitch streamers.
 
 Transcribe a Twitch VOD, detect the most clippable moments locally (with an
 optional Claude re-rank), then render vertical 9:16 clips with a facecam-top /

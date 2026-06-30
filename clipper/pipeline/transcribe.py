@@ -195,5 +195,5 @@ if __name__ == "__main__":
     import sys
     cfg = config.load_config()
     wav_arg = sys.argv[1] if len(sys.argv) > 1 else os.path.join(config.WORK_DIR, "stream1_16k.wav")
-    vod_arg = sys.argv[2] if len(sys.argv) > 2 else r"C:\Users\Brett\OneDrive\Documents\StreamingProject\Stream1.mp4"
+    vod_arg = sys.argv[2] if len(sys.argv) > 2 else os.path.join(os.path.expanduser("~"), "Videos", "Stream1.mp4")
     transcribe(cfg, wav_arg, vod_arg)

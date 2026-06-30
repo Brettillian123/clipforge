@@ -8,9 +8,9 @@ Free/OSS only. v2 incorporates the 5-lens adversarial review (3 blockers + factu
 - GPU: RX 9070 XT (RDNA4, 16 GB) + integrated Radeon iGPU. Vulkan device live (api 1.4.349,
   driver 26.6.2). Vulkan **runtime** present; **SDK absent**; **no C/C++ compiler**. git+winget+Py3.13.
 - ffmpeg **installed** (Gyan 8.1.1 full), `h264_amf`+libass verified; venv built (numpy/pillow/anthropic).
-- Models **downloaded & magic-verified** to `C:\Users\Brett\clipforge\models\`:
+- Models **downloaded & magic-verified** to `%USERPROFILE%\clipforge\models\`:
   `ggml-large-v3-turbo.bin` (1.51 GB) + `ggml-tiny.en.bin` (74 MB, smoke model).
-- Test material: `C:\Users\Brett\Videos\2026-06-21 23-35-05.mp4` (~40 MB short) + two multi-hour VODs.
+- Test material: `%USERPROFILE%\Videos\<short-test>.mp4` (~40 MB short) + two multi-hour VODs.
 
 ## 1. Backend decision (KEEP — confirmed by all 5 lenses)
 whisper.cpp (Vulkan) driven from Python via subprocess — only no-compiler path to the AMD GPU with

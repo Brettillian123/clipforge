@@ -1,134 +1,151 @@
-# ClipForge Studio
+# ClipForge Studio — app & CLI reference
 
-Turn a Twitch VOD into ready-to-post **vertical clips** for TikTok and YouTube Shorts —
-then review and fine-tune every one in a local web editor.
+Turn a Twitch VOD into ready-to-post **vertical clips** for TikTok and YouTube Shorts — then review and
+fine-tune every one in a local editor, and post or schedule them without leaving the app.
 
-It transcribes the stream, finds your most clippable moments, and renders each as a 9:16
-video: **facecam on top, gameplay on the bottom, animated word-by-word captions, and a
-persistent Twitch follow watermark.** Then the **Studio** dashboard lets you trim, restyle
-captions, add text/shapes/emojis/images, drop in a chat screenshot, splice in more of the
-stream for context, write viral titles with AI, approve, and batch-render — all locally.
+> **New here? Start with the [repository README](../README.md)** for install + a quick tour, and
+> **[docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md)** for how it all works. This page is the in-depth
+> reference for the editor, the CLI, posting setup, and tuning.
 
-Built for **TheEnchantingChicken**. Clips use the raw clip audio (no added music), so they're
-safe to post as-is. Code lives in OneDrive (syncs to your Desktop); the venv, model, and
-working files stay local in `C:\Users\Brett\clipforge`.
+It transcribes the stream, finds your most clippable moments, and renders each as a 9:16 video:
+**facecam on top, gameplay on the bottom, animated word-by-word captions, a follow watermark, and a hook
+titlecard.** The **Studio** then lets you trim, restyle captions, add text/shapes/emojis/images, drop in
+a chat screenshot, splice in more of the stream, write viral titles with AI, approve, batch-render, and
+post — all locally. Clips use the raw clip audio (no added music), so they're safe to post as-is.
 
 ---
 
 ## Quick start
 
 ```powershell
-# one-time setup (on the NVIDIA laptop):
+# one-time setup (creates a local venv under %USERPROFILE%\clipforge, installs deps, copies fonts):
 powershell -ExecutionPolicy Bypass -File .\setup.ps1
 
-# 1) make the first-pass clips from a VOD (transcribe + detect + render):
-$env:PYTHONPATH="C:\Users\Brett\OneDrive\Documents\StreamingProject\clipper"
-& C:\Users\Brett\clipforge\.venv\Scripts\python.exe clip.py "C:\Users\Brett\OneDrive\Documents\StreamingProject\Stream1.mp4"
-
-# 2) open the Studio to review & edit:
-& C:\Users\Brett\clipforge\.venv\Scripts\python.exe dashboard.py
+# launch the Studio (or just double-click ClipForge.bat):
+$env:PYTHONPATH = (Get-Location)
+& "$env:USERPROFILE\clipforge\.venv\Scripts\python.exe" dashboard.py
 ```
 
-`clip.py` writes the clips + a `project.json` next to the VOD (`...\clips\`). `dashboard.py`
-opens the Studio at http://127.0.0.1:8765.
+The Studio opens as its own desktop window at `http://127.0.0.1:8765`. Drop stream recordings (`.mp4`)
+in your **Videos** folder and they show up on the Home screen — pick one and hit **🎬 Make clips**.
 
-`clip.py` options: `--count N` (how many clips) · `--ai` (Claude picks + titles) ·
-`--limit-secs 900` (fast test on first 15 min) · `--dry-run` (detect only) ·
-`--dashboard` (render then open Studio).
+**CLI (one-off, no UI):**
+
+```powershell
+$env:PYTHONPATH = (Get-Location)
+& "$env:USERPROFILE\clipforge\.venv\Scripts\python.exe" clip.py "C:\path\to\your-vod.mp4"
+```
+
+`clip.py` writes the clips + a `project.json` to `"<vod> - clips\"`. Options: `--count N` ·
+`--ai` (Claude picks + titles) · `--limit-secs 900` (fast test on first 15 min) · `--dry-run`
+(detect only) · `--dashboard` (render then open the Studio).
 
 ---
 
 ## The Studio editor — what each part does
 
-**Left — clip browser.** Thumbnails of every clip with score + length. An "edits" tag shows when
-a clip has changes not yet in its downloaded file. Filter by New / Approved / Rejected.
-**✨ AI titles (all)** writes a viral title + caption + hashtags for every clip in one click (needs
-an API key). **Export approved (N)** renders the final files for everything you've approved.
+**Left — clip browser.** Thumbnails of every clip with score + length. An "edits" tag shows when a clip
+has changes not yet in its downloaded file. Filter by New / Approved / Rejected. **✨ AI titles (all)**
+writes a viral title + caption + hashtags for every clip in one click (needs an API key).
+**Export approved (N)** renders the final files for everything you've approved.
 
 **Center — the live stage.**
-- Click a clip and it **just plays** (normal video controls). Whatever you add — text, shapes,
-  emoji, chat — appears **instantly on the video**; you never render to preview. Drag to move, drag
-  the gold dot to resize, arrow-keys to nudge.
+- Click a clip and it **just plays**. Whatever you add — text, shapes, emoji, chat — appears
+  **instantly on the video**; you never render to preview. Drag to move, drag the gold dot to resize,
+  arrow-keys to nudge.
 - A **floating toolbar** sits on the selected element: color, size (A− / A+), duplicate, delete.
-- The **add-element toolbar**: Text, Box, Circle, **Arrow** (opens a style popup: → ← ↑ ↓ ↗),
-  Line, Emoji, Image, Hook (intro text), End CTA ("follow" card at the end), Safe-zone overlay.
+- The **add-element toolbar**: Text, Box, Circle, **Arrow** (→ ← ↑ ↓ ↗), Line, Emoji, Image, Hook
+  (intro text), End CTA, Safe-zone overlay.
 
 **Right — panels.**
-- **Element** — edit the selected element (text, size, color, outline, background pill, alignment;
-  shape stroke/fill/radius; position X/Y/W/H; show-from/to time + fades). Duplicate or Delete.
-- **Length / context** — adjust in/out, and **add another part of the stream** by typing VOD
-  timecodes (it gets stitched in with the same layout + captions).
-- **Layers** — every element, front-to-back; show/hide, reorder, and see its on-screen time.
-- **Chat inset** — turn it on and the chat screenshot shows **live** on the video; choose corner,
-  size, grab-time, and when it appears.
-- **Captions** — toggle burn-in; change size, colors (word + active word), max words per line, and
-  vertical position; **Fix words…** corrects any mis-transcribed word. (Caption/trim changes
-  re-render the base preview — a few seconds.)
-- **Post text (copy)** — per-platform title/caption/hashtags with a **Copy** button.
+- **Element** — edit the selected element (text/size/color/outline/background pill/alignment; shape
+  stroke/fill/radius; position X/Y/W/H; show-from/to + fades). Duplicate or Delete.
+- **Length / parts** — adjust in/out, and **splice in another part of the stream** by VOD timecodes
+  (same layout + captions, with or without that part's audio).
+- **Layers** — every element, front-to-back; show/hide, reorder, see on-screen time.
+- **Chat inset** — turn it on and a chat screenshot shows **live** on the video; choose corner, size,
+  grab-time, and when it appears.
+- **Captions** — toggle burn-in; change size, colors, max words per line, vertical position;
+  **Fix words…** corrects a mis-transcribed word; **✨ AI clean up** fixes filler/stutters in sync.
+- **Post / schedule** — per-platform title/caption/hashtags (with **Copy**), plus **Post now /
+  Schedule** to your connected YouTube + TikTok accounts.
 - **AI assist** — plain-English edits ("start where I first spot the prop", "punchier captions").
 
-**The flow:** everything autosaves (per clip — switching clips never loses edits). The stage is a
-**live preview** — add/move/recolor and you see it immediately, no rendering. When you want the
-finished file, click **⬇ Download** (it renders everything burned-in and saves the .mp4). A badge
-warns "edits not downloaded" whenever your latest changes aren't in the downloaded file yet, so you
-always know to re-download. **Export approved (N)** does this in bulk for approved clips. Approve
-(**A**) / reject (**X**) as you go; trimming/captions re-render the base preview, everything else is
-instant.
+**The flow:** everything autosaves per clip (switching clips never loses edits). The stage is a **live
+preview**; when you want the finished file, click **⬇ Download** (renders everything burned-in). A badge
+warns "edits not downloaded" whenever your latest changes aren't in the downloaded file yet.
 
-**Shortcuts:** Space play/pause · ←/→ nudge element · I set in-point · A/X approve/reject ·
-R render · Del delete element · Ctrl+Z / Ctrl+Shift+Z undo/redo · **? = full list**.
+**Shortcuts:** Space play/pause · `,`/`.` step a frame · `[`/`]` prev/next clip · A/X approve/reject ·
+arrow keys nudge a selected element · Del delete · Ctrl+Z / Ctrl+Shift+Z undo/redo · **? = full list**.
 
 ---
 
-## How it works
+## Posting setup
 
-Pipeline (`pipeline/`):
-1. **audio** — decode to 16 kHz mono; numpy loudness + hi-freq features (no librosa/torch).
-2. **transcribe** — faster-whisper `large-v3`, word timestamps, GPU (~12× realtime). Cached.
-3. **detect** — score every second on six signals (text/energy/spike/laughter/sustain/variance),
-   snap to sentence pauses, dedupe, keep the best (default ~30s clips).
-4. **rerank / ai_edit / write_titles** *(optional, Claude)* — pick the best, write copy, and apply
-   plain-English edits. Everything else is deterministic and needs no AI.
-5. **render** — one ffmpeg pass per segment: facecam-top + gameplay-bottom, gold/lavender divider,
-   ASS karaoke captions, then every overlay (watermark, chat, your elements) composited with fades.
-   Segments are concatenated for multi-part clips. NVENC with an x264 fallback.
+ClipForge posts finished clips to **your own** YouTube + TikTok accounts. It's **semi-automated and
+free**: YouTube uploads land **private** (flip to public in YouTube Studio), and TikTok lands in your
+**drafts** (add the caption and tap Post in the app). You register a developer app on each platform once
+and paste the client keys into the Studio's **🚀 Posting** panel — OAuth runs through the app's own
+loopback redirect (`http://127.0.0.1:8765/oauth2/<platform>/callback`), so no public website is needed.
 
-**The element system** is the spine: chat, watermark, text, shapes, images, and emojis are all
-"elements" with the same shape — geometry in 1080×1920 render space, timing, style, and type-specific
-data (`pipeline/elements.py`). The dashboard stores them in `clips\project.json`; the renderer turns
-each into a Pillow PNG and overlays it. Because the stage uses the same render-space coordinates, the
-preview is a true WYSIWYG of the output.
+**YouTube (Google Cloud Console):**
+1. Create a project → enable **YouTube Data API v3**.
+2. OAuth consent screen → **External** → add yourself under **Test users**.
+3. Credentials → **OAuth client ID** → type **Web application** → add the redirect URI above (the panel
+   shows it, copyable) → Create.
+4. Paste the Client ID + secret into the Posting panel → **Save** → **Connect**.
 
-**Dashboard** is a dependency-free stdlib server (`pipeline/server.py`) + one vanilla-JS page
-(`dashboard.html`). State is `clips\project.json` (one entry per clip — inspectable and recoverable).
+**TikTok (TikTok for Developers):**
+1. Create an app (keep it in **Sandbox**) → add products **Login Kit** + **Content Posting API**.
+2. Add scopes `user.info.basic` and `video.upload`; add the redirect URI above.
+3. Add your own TikTok account as a **target user** so you can upload to it.
+4. Paste the Client key + secret into the Posting panel → **Save** → **Connect**.
+
+Tokens are stored locally in `<clipforge-home>/posting.json` and are never committed. Scheduled posts
+fire from a local timer, so the app must be running at the scheduled time.
+
+---
+
+## How it works (short version)
+
+Pipeline (`pipeline/`): **audio** (16 kHz PCM + loudness/HF features) → **transcribe**
+(whisper.cpp/Vulkan on AMD, or faster-whisper/CUDA on NVIDIA, cached) → **detect** (score every second
+on six signals, snap to pauses, dedupe) → optional **rerank/ai_edit/write_titles** (Claude) →
+**render** (one ffmpeg pass per segment: facecam-top + gameplay-bottom, divider, ASS karaoke captions,
+then every overlay composited, with NVENC/AMF + a decode-verify libx264 fallback).
+
+The **element system** is the spine: chat, watermark, text, shapes, images, emojis, and the titlecard
+are all "elements" with the same shape (geometry in 1080×1920 render space, timing, style, type-data).
+The Studio is a stdlib HTTP server (`pipeline/server.py`) + one vanilla-JS page (`dashboard.html`); clip
+state is `project.json`. See **[docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md)** for the full picture.
 
 ### Platform format guide (researched, 2026)
 | | TikTok | YouTube Shorts |
 |---|---|---|
 | Aspect / res | 9:16 / 1080×1920 | 9:16 / 1080×1920 |
 | Length sweet spot | 15–30 s | 21–34 s (avoid sub-15 s) |
-| #1 signal | completion rate (~70% = viral) | viewed-vs-swiped + avg view % |
+| #1 signal | completion rate | viewed-vs-swiped + avg view % |
 | Hook | first 3 s, peak-first | first 3 s; the **title** is also a search lever |
 | Hashtags | 3–5: broad + niche | 3–5 in description; include `#Shorts` |
-| Captions | mandatory (sound-off viewing) | mandatory |
-
-One 1080×1920 master serves both; only the title/caption/hashtags differ.
+| Captions | mandatory (sound-off) | mandatory |
 
 ---
 
-## Tuning & files
-- All defaults live in `pipeline/config.py` (geometry, caption defaults, detection weights, chat
-  region, AI model). Detection lexicons are in `pipeline/detect.py`.
-- Output per VOD: `<vod folder>\clips\` → `clipNN.mp4`, `project.json` (Studio state), `clips.md`
-  (quick review sheet).
+## Make it yours & tuning
+
+- **Personalise without editing code:** drop a `config.json` in your ClipForge home
+  (`%USERPROFILE%\clipforge\config.json`) to set `wm_handle`, `channel_name`, `channel_persona`, or any
+  other `Config` field. See the [repo README](../README.md#make-it-yours).
+- **All defaults** live in `pipeline/config.py` (geometry, caption defaults, detection weights, chat
+  region, AI model, encoder). Detection lexicons are in `pipeline/detect.py`.
+- **Output per VOD:** `"<vod> - clips\"` → `clipNN.mp4` (editable base), `Ready to post\clipNN.mp4`
+  (final burn-in) + `clipNN.jpg` cover, `project.json` (Studio state).
 
 ## Notes / troubleshooting
-- **Run heavy jobs on the NVIDIA laptop.** The Desktop's Radeon has no CUDA → CPU-only transcription
-  (hours). Transcribe on the laptop; clips sync to the Desktop via OneDrive.
+- **Use a GPU machine for the heavy transcription.** No CUDA/Vulkan → CPU-only (slow on a long VOD).
 - **AI features** need an Anthropic API key — paste it in the Studio header once (stored locally in
-  `C:\Users\Brett\clipforge\secret.json`, never synced) and install `anthropic` (`setup.ps1` does the
-  rest). Model is Sonnet by default (cheap, fast); change `ai_model` in config for Opus.
+  `<clipforge-home>/secret.json`, never synced). Model is Sonnet by default; change `ai_model` in config.
 - **`cannot load cudnn_ops64_9.dll`** — handled automatically; if it persists the run falls back to CPU.
-- **Captions in the wrong font** — re-run `setup.ps1` (copies Poppins to `clipforge\fonts` for libass).
+- **Captions in the wrong font** — re-run `setup.ps1` (copies Poppins to `<clipforge-home>/fonts`).
 - **A clip's cam crop looks off** — it was a non-gameplay scene; the gold-border detector skipped it and
-  used the default. Tune `cam_*` in config or use a manual cam box.
+  used the default. Tune `cam_*` in config or use the Studio's manual cam mode.
